@@ -280,6 +280,7 @@ CDemoCamera::~CDemoCamera()
 */
 void CDemoCamera::GetName(char* name) const
 {
+    LogMessage("API METHOD ENTRY: GetName");
    // Return the name used to referr to this device adapte
    CDeviceUtils::CopyLimitedString(name, g_CameraDeviceName);
 }
@@ -295,6 +296,7 @@ void CDemoCamera::GetName(char* name) const
 */
 int CDemoCamera::Initialize()
 {
+    LogMessage("API METHOD ENTRY: Initialize");
    if (initialized_)
       return DEVICE_OK;
 
@@ -577,6 +579,7 @@ int CDemoCamera::Initialize()
 */
 int CDemoCamera::Shutdown()
 {
+    LogMessage("API METHOD ENTRY: Shutdown");
    initialized_ = false;
    return DEVICE_OK;
 }
@@ -589,6 +592,7 @@ int CDemoCamera::Shutdown()
 */
 int CDemoCamera::SnapImage()
 {
+    LogMessage("API METHOD ENTRY: SnapImage");
 	static int callCounter = 0;
 	++callCounter;
 
@@ -637,6 +641,7 @@ int CDemoCamera::SnapImage()
 */
 const unsigned char* CDemoCamera::GetImageBuffer()
 {
+    LogMessage("API METHOD ENTRY: GetImageBuffer");
    MMThreadGuard g(imgPixelsLock_);
    MM::MMTime readoutTime(readoutUs_);
    while (readoutTime > (GetCurrentMMTime() - readoutStartTime_)) {}		
@@ -650,6 +655,7 @@ const unsigned char* CDemoCamera::GetImageBuffer()
 */
 unsigned CDemoCamera::GetImageWidth() const
 {
+    LogMessage("API METHOD ENTRY: GetImageWidth");
    return img_.Width();
 }
 
@@ -659,6 +665,7 @@ unsigned CDemoCamera::GetImageWidth() const
 */
 unsigned CDemoCamera::GetImageHeight() const
 {
+    LogMessage("API METHOD ENTRY: GetImageHeight");
    return img_.Height();
 }
 
@@ -668,6 +675,7 @@ unsigned CDemoCamera::GetImageHeight() const
 */
 unsigned CDemoCamera::GetImageBytesPerPixel() const
 {
+    LogMessage("API METHOD ENTRY: GetImageBytesPerPixel");
    return img_.Depth();
 } 
 
@@ -679,6 +687,7 @@ unsigned CDemoCamera::GetImageBytesPerPixel() const
 */
 unsigned CDemoCamera::GetBitDepth() const
 {
+    LogMessage("API METHOD ENTRY: GetBitDepth");
    return bitDepth_;
 }
 
@@ -688,6 +697,7 @@ unsigned CDemoCamera::GetBitDepth() const
 */
 long CDemoCamera::GetImageBufferSize() const
 {
+    LogMessage("API METHOD ENTRY: GetImageBufferSize");
    return img_.Width() * img_.Height() * GetImageBytesPerPixel();
 }
 
@@ -709,6 +719,7 @@ long CDemoCamera::GetImageBufferSize() const
 */
 int CDemoCamera::SetROI(unsigned x, unsigned y, unsigned xSize, unsigned ySize)
 {
+    LogMessage("API METHOD ENTRY: SetROI");
    multiROIXs_.clear();
    multiROIYs_.clear();
    multiROIWidths_.clear();
@@ -737,6 +748,7 @@ int CDemoCamera::SetROI(unsigned x, unsigned y, unsigned xSize, unsigned ySize)
 */
 int CDemoCamera::GetROI(unsigned& x, unsigned& y, unsigned& xSize, unsigned& ySize)
 {
+    LogMessage("API METHOD ENTRY: GetROI");
    x = roiX_;
    y = roiY_;
 
@@ -752,6 +764,7 @@ int CDemoCamera::GetROI(unsigned& x, unsigned& y, unsigned& xSize, unsigned& ySi
 */
 int CDemoCamera::ClearROI()
 {
+    LogMessage("API METHOD ENTRY: ClearROI");
    ResizeImageBuffer();
    roiX_ = 0;
    roiY_ = 0;
@@ -769,6 +782,7 @@ int CDemoCamera::ClearROI()
  */
 bool CDemoCamera::SupportsMultiROI()
 {
+    LogMessage("API METHOD ENTRY: SupportsMultiROI");
    return supportsMultiROI_;
 }
 
@@ -781,6 +795,7 @@ bool CDemoCamera::SupportsMultiROI()
  */
 bool CDemoCamera::IsMultiROISet()
 {
+    LogMessage("API METHOD ENTRY: IsMultiROISet");
    return multiROIXs_.size() > 0;
 }
 
@@ -792,6 +807,7 @@ bool CDemoCamera::IsMultiROISet()
  */
 int CDemoCamera::GetMultiROICount(unsigned int& count)
 {
+    LogMessage("API METHOD ENTRY: GetMultiROICount");
    count = (unsigned int) multiROIXs_.size();
    return DEVICE_OK;
 }
@@ -811,6 +827,7 @@ int CDemoCamera::SetMultiROI(const unsigned int* xs, const unsigned int* ys,
       const unsigned* widths, const unsigned int* heights,
       unsigned numROIs)
 {
+    LogMessage("API METHOD ENTRY: SetMultiROI");
    multiROIXs_.clear();
    multiROIYs_.clear();
    multiROIWidths_.clear();
@@ -863,6 +880,7 @@ int CDemoCamera::SetMultiROI(const unsigned int* xs, const unsigned int* ys,
 int CDemoCamera::GetMultiROI(unsigned* xs, unsigned* ys, unsigned* widths,
       unsigned* heights, unsigned* length)
 {
+    LogMessage("API METHOD ENTRY: GetMultiROI");
    unsigned int roiCount = (unsigned int) multiROIXs_.size();
    if (roiCount > *length)
    {
@@ -886,6 +904,7 @@ int CDemoCamera::GetMultiROI(unsigned* xs, unsigned* ys, unsigned* widths,
 */
 double CDemoCamera::GetExposure() const
 {
+    LogMessage("API METHOD ENTRY: GetExposure");
    char buf[MM::MaxStrLength];
    int ret = GetProperty(MM::g_Keyword_Exposure, buf);
    if (ret != DEVICE_OK)
@@ -917,6 +936,7 @@ double CDemoCamera::GetSequenceExposure()
 */
 void CDemoCamera::SetExposure(double exp)
 {
+    LogMessage("API METHOD ENTRY: SetExposure");
    SetProperty(MM::g_Keyword_Exposure, CDeviceUtils::ConvertToString(exp));
    GetCoreCallback()->OnExposureChanged(this, exp);;
 }
@@ -927,6 +947,7 @@ void CDemoCamera::SetExposure(double exp)
 */
 int CDemoCamera::GetBinning() const
 {
+    LogMessage("API METHOD ENTRY: GetBinning");
    char buf[MM::MaxStrLength];
    int ret = GetProperty(MM::g_Keyword_Binning, buf);
    if (ret != DEVICE_OK)
@@ -940,17 +961,20 @@ int CDemoCamera::GetBinning() const
 */
 int CDemoCamera::SetBinning(int binF)
 {
+    LogMessage("API METHOD ENTRY: SetBinning");
    return SetProperty(MM::g_Keyword_Binning, CDeviceUtils::ConvertToString(binF));
 }
 
 int CDemoCamera::IsExposureSequenceable(bool& isSequenceable) const
 {
+    LogMessage("API METHOD ENTRY: IsExposureSequenceable");
    isSequenceable = isSequenceable_;
    return DEVICE_OK;
 }
 
 int CDemoCamera::GetExposureSequenceMaxLength(long& nrEvents) const
 {
+    LogMessage("API METHOD ENTRY: GetExposureSequenceMaxLength");
    if (!isSequenceable_) {
       return DEVICE_UNSUPPORTED_COMMAND;
    }
@@ -961,6 +985,7 @@ int CDemoCamera::GetExposureSequenceMaxLength(long& nrEvents) const
 
 int CDemoCamera::StartExposureSequence()
 {
+    LogMessage("API METHOD ENTRY: StartExposureSequence");
    if (!isSequenceable_) {
       return DEVICE_UNSUPPORTED_COMMAND;
    }
@@ -972,6 +997,7 @@ int CDemoCamera::StartExposureSequence()
 
 int CDemoCamera::StopExposureSequence()
 {
+    LogMessage("API METHOD ENTRY: StopExposureSequence");
    if (!isSequenceable_) {
       return DEVICE_UNSUPPORTED_COMMAND;
    }
@@ -987,6 +1013,7 @@ int CDemoCamera::StopExposureSequence()
  */
 int CDemoCamera::ClearExposureSequence()
 {
+    LogMessage("API METHOD ENTRY: ClearExposureSequence");
    if (!isSequenceable_) {
       return DEVICE_UNSUPPORTED_COMMAND;
    }
@@ -1000,6 +1027,7 @@ int CDemoCamera::ClearExposureSequence()
  */
 int CDemoCamera::AddToExposureSequence(double exposureTime_ms) 
 {
+    LogMessage("API METHOD ENTRY: AddToExposureSequence");
    if (!isSequenceable_) {
       return DEVICE_UNSUPPORTED_COMMAND;
    }
@@ -1009,6 +1037,7 @@ int CDemoCamera::AddToExposureSequence(double exposureTime_ms)
 }
 
 int CDemoCamera::SendExposureSequence() const {
+    LogMessage("API METHOD ENTRY: SendExposureSequence");
    if (!isSequenceable_) {
       return DEVICE_UNSUPPORTED_COMMAND;
    }
@@ -1045,6 +1074,7 @@ int CDemoCamera::SetAllowedBinning()
  */
 int CDemoCamera::StartSequenceAcquisition(double interval)
 {
+    LogMessage("API METHOD ENTRY: StartSequenceAcquisition(interval)");
    return StartSequenceAcquisition(LONG_MAX, interval, false);            
 }
 
@@ -1053,6 +1083,7 @@ int CDemoCamera::StartSequenceAcquisition(double interval)
 */                                                                        
 int CDemoCamera::StopSequenceAcquisition()                                     
 {
+    LogMessage("API METHOD ENTRY: StopSequenceAcquisition");
    if (!thd_->IsStopped()) {
       thd_->Stop();                                                       
       thd_->wait();                                                       
@@ -1068,6 +1099,7 @@ int CDemoCamera::StopSequenceAcquisition()
 */
 int CDemoCamera::StartSequenceAcquisition(long numImages, double interval_ms, bool stopOnOverflow)
 {
+    LogMessage("API METHOD ENTRY: StartSequenceAcquisition(numImages, interval_ms, stopOnOverflow)");
    if (IsCapturing())
       return DEVICE_CAMERA_BUSY_ACQUIRING;
 
@@ -1167,6 +1199,7 @@ int CDemoCamera::RunSequenceOnThread()
 };
 
 bool CDemoCamera::IsCapturing() {
+    LogMessage("API METHOD ENTRY: IsCapturing");
    return !thd_->IsStopped();
 }
 

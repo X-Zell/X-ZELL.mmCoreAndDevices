@@ -148,7 +148,11 @@ public:
            unsigned numROIs);
    int GetMultiROI(unsigned* xs, unsigned* ys, unsigned* widths,
            unsigned* heights, unsigned* length);
-   int PrepareSequenceAcqusition() { return DEVICE_OK; }
+   int PrepareSequenceAcqusition()
+   {
+       LogMessage("API METHOD ENTRY: PrepareSequenceAcqusition");
+       return DEVICE_OK;
+   }
    int StartSequenceAcquisition(double interval);
    int StartSequenceAcquisition(long numImages, double interval_ms, bool stopOnOverflow);
    int StopSequenceAcquisition();
@@ -156,7 +160,10 @@ public:
    int RunSequenceOnThread();
    bool IsCapturing();
    void OnThreadExiting() throw(); 
-   double GetNominalPixelSizeUm() const {return nominalPixelSizeUm_;}
+   double GetNominalPixelSizeUm() const {
+       LogMessage("API METHOD ENTRY: GetPixelSizeUm");
+       return nominalPixelSizeUm_;
+   }
    double GetPixelSizeUm() const {return nominalPixelSizeUm_ * GetBinning();}
    int GetBinning() const;
    int SetBinning(int bS);
