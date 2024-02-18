@@ -36,8 +36,8 @@ const double XZellZeissCamera::nominalPixelSizeUm_ = 1.0;
 double g_IntensityFactor_ = 1.0;
 
 // External names used used by the rest of the system
-// to load particular device from the "DemoCamera.dll" library
-const char* g_CameraDeviceName = "DCam";
+// to load particular device from the "XZellZeissCam.dll" library
+const char* g_CameraDeviceName = "XZellCam";
 const char* g_WheelDeviceName = "DWheel";
 const char* g_StateDeviceName = "DStateDevice";
 const char* g_LightPathDeviceName = "DLightPath";
@@ -50,7 +50,7 @@ const char* g_DADeviceName = "D-DA";
 const char* g_DA2DeviceName = "D-DA2";
 const char* g_GalvoDeviceName = "DGalvo";
 const char* g_MagnifierDeviceName = "DOptovar";
-const char* g_HubDeviceName = "DHub";
+const char* g_HubDeviceName = "XZellHub";
 
 // constants for naming pixel types (allowed values of the "PixelType" property)
 const char* g_PixelType_8bit = "8bit";
@@ -72,7 +72,7 @@ enum { MODE_ARTIFICIAL_WAVES, MODE_NOISE, MODE_COLOR_TEST };
 
 MODULE_API void InitializeModuleData()
 {
-   RegisterDevice(g_CameraDeviceName, MM::CameraDevice, "Demo camera");
+   RegisterDevice(g_CameraDeviceName, MM::CameraDevice, "XZell Zeiss camera");
    RegisterDevice(g_WheelDeviceName, MM::StateDevice, "Demo filter wheel");
    RegisterDevice(g_StateDeviceName, MM::StateDevice, "Demo State Device");
    RegisterDevice(g_ObjectiveDeviceName, MM::StateDevice, "Demo objective turret");
@@ -89,7 +89,7 @@ MODULE_API void InitializeModuleData()
    RegisterDevice("ImageFlipX", MM::ImageProcessorDevice, "ImageFlipX");
    RegisterDevice("ImageFlipY", MM::ImageProcessorDevice, "ImageFlipY");
    RegisterDevice("MedianFilter", MM::ImageProcessorDevice, "MedianFilter");
-   RegisterDevice(g_HubDeviceName, MM::HubDevice, "DHub");
+   RegisterDevice(g_HubDeviceName, MM::HubDevice, "XZellHub");
 }
 
 MODULE_API MM::Device* CreateDevice(const char* deviceName)
