@@ -486,8 +486,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QSI", "DeviceAdapters\QSI\Q
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NotificationTester", "DeviceAdapters\NotificationTester\NotificationTester.vcxproj", "{7C8C60FA-92E3-4102-80AB-A4468C4FCD2F}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NewLibrary", "NewLibrary\NewLibrary.vcxproj", "{AC956BAF-1F80-4575-A0A8-E54E782E20AA}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "XZellZeissCam", "DeviceAdapters\XZellZeissCam\XZellZeissCam.vcxproj", "{151CDA51-D3E7-4544-B8E2-B1DD979CA577}"
 EndProject
 Global
@@ -1950,14 +1948,6 @@ Global
 		{7C8C60FA-92E3-4102-80AB-A4468C4FCD2F}.Release|x64.ActiveCfg = Release|x64
 		{7C8C60FA-92E3-4102-80AB-A4468C4FCD2F}.Release|x64.Build.0 = Release|x64
 		{7C8C60FA-92E3-4102-80AB-A4468C4FCD2F}.Release|x86.ActiveCfg = Release|x64
-		{AC956BAF-1F80-4575-A0A8-E54E782E20AA}.Debug|x64.ActiveCfg = Debug|x64
-		{AC956BAF-1F80-4575-A0A8-E54E782E20AA}.Debug|x64.Build.0 = Debug|x64
-		{AC956BAF-1F80-4575-A0A8-E54E782E20AA}.Debug|x86.ActiveCfg = Debug|Win32
-		{AC956BAF-1F80-4575-A0A8-E54E782E20AA}.Debug|x86.Build.0 = Debug|Win32
-		{AC956BAF-1F80-4575-A0A8-E54E782E20AA}.Release|x64.ActiveCfg = Release|x64
-		{AC956BAF-1F80-4575-A0A8-E54E782E20AA}.Release|x64.Build.0 = Release|x64
-		{AC956BAF-1F80-4575-A0A8-E54E782E20AA}.Release|x86.ActiveCfg = Release|Win32
-		{AC956BAF-1F80-4575-A0A8-E54E782E20AA}.Release|x86.Build.0 = Release|Win32
 		{151CDA51-D3E7-4544-B8E2-B1DD979CA577}.Debug|x64.ActiveCfg = Debug|x64
 		{151CDA51-D3E7-4544-B8E2-B1DD979CA577}.Debug|x64.Build.0 = Debug|x64
 		{151CDA51-D3E7-4544-B8E2-B1DD979CA577}.Debug|x86.ActiveCfg = Debug|x64
