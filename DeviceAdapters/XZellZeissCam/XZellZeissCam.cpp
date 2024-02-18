@@ -32,7 +32,7 @@
 #include <iostream>
 #include <future>
 
-const double CDemoCamera::nominalPixelSizeUm_ = 1.0;
+const double XZellZeissCamera::nominalPixelSizeUm_ = 1.0;
 double g_IntensityFactor_ = 1.0;
 
 // External names used used by the rest of the system
@@ -101,7 +101,7 @@ MODULE_API MM::Device* CreateDevice(const char* deviceName)
    if (strcmp(deviceName, g_CameraDeviceName) == 0)
    {
       // create camera
-      return new CDemoCamera();
+      return new XZellZeissCamera();
    }
    else if (strcmp(deviceName, g_WheelDeviceName) == 0)
    {
@@ -195,11 +195,11 @@ MODULE_API void DeleteDevice(MM::Device* pDevice)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CDemoCamera implementation
+// XZellZeissCamera implementation
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 /**
-* CDemoCamera constructor.
+* XZellZeissCamera constructor.
 * Setup default all variables and create device properties required to exist
 * before intialization. In this case, no such properties were required. All
 * properties will be created in the Initialize() method.
@@ -208,8 +208,8 @@ MODULE_API void DeleteDevice(MM::Device* pDevice)
 * the constructor. We should do as little as possible in the constructor and
 * perform most of the initialization in the Initialize() method.
 */
-CDemoCamera::CDemoCamera() :
-   CCameraBase<CDemoCamera> (),
+XZellZeissCamera::XZellZeissCamera() :
+   CCameraBase<XZellZeissCamera> (),
    exposureMaximum_(10000.0),
    dPhase_(0),
    initialized_(false),
@@ -256,18 +256,18 @@ CDemoCamera::CDemoCamera() :
    CreateHubIDProperty();
 
    CreateFloatProperty("MaximumExposureMs", exposureMaximum_, false,
-         new CPropertyAction(this, &CDemoCamera::OnMaxExposure),
+         new CPropertyAction(this, &XZellZeissCamera::OnMaxExposure),
          true);
 }
 
 /**
-* CDemoCamera destructor.
+* XZellZeissCamera destructor.
 * If this device used as intended within the Micro-Manager system,
 * Shutdown() will be always called before the destructor. But in any case
 * we need to make sure that all resources are properly released even if
 * Shutdown() was not called.
 */
-CDemoCamera::~CDemoCamera()
+XZellZeissCamera::~XZellZeissCamera()
 {
    StopSequenceAcquisition();
    delete thd_;
@@ -277,7 +277,7 @@ CDemoCamera::~CDemoCamera()
 * Obtains device name.
 * Required by the MM::Device API.
 */
-void CDemoCamera::GetName(char* name) const
+void XZellZeissCamera::GetName(char* name) const
 {
     LogMessage("API METHOD ENTRY: GetName");
    // Return the name used to referr to this device adapte
@@ -293,7 +293,7 @@ void CDemoCamera::GetName(char* name) const
 * Such pre-initialization properties are created in the constructor.
 * (This device does not have any pre-initialization properties)
 */
-int CDemoCamera::Initialize()
+int XZellZeissCamera::Initialize()
 {
     LogMessage("API METHOD ENTRY: Initialize");
    if (initialized_)
@@ -331,7 +331,7 @@ int CDemoCamera::Initialize()
    assert(nRet == DEVICE_OK);
 
    // binning
-   CPropertyAction *pAct = new CPropertyAction (this, &CDemoCamera::OnBinning);
+   CPropertyAction *pAct = new CPropertyAction (this, &XZellZeissCamera::OnBinning);
    nRet = CreateIntegerProperty(MM::g_Keyword_Binning, 1, false, pAct);
    assert(nRet == DEVICE_OK);
 
@@ -340,7 +340,7 @@ int CDemoCamera::Initialize()
       return nRet;
 
    // pixel type
-   pAct = new CPropertyAction (this, &CDemoCamera::OnPixelType);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnPixelType);
    nRet = CreateStringProperty(MM::g_Keyword_PixelType, g_PixelType_8bit, false, pAct);
    assert(nRet == DEVICE_OK);
 
@@ -356,7 +356,7 @@ int CDemoCamera::Initialize()
       return nRet;
 
    // Bit depth
-   pAct = new CPropertyAction (this, &CDemoCamera::OnBitDepth);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnBitDepth);
    nRet = CreateIntegerProperty("BitDepth", 8, false, pAct);
    assert(nRet == DEVICE_OK);
 
@@ -385,7 +385,7 @@ int CDemoCamera::Initialize()
       std::ostringstream os;
       os<<ij;
       std::string propName = "TestProperty" + os.str();
-		pActX = new CPropertyActionEx(this, &CDemoCamera::OnTestProperty, ij);
+		pActX = new CPropertyActionEx(this, &XZellZeissCamera::OnTestProperty, ij);
       nRet = CreateFloatProperty(propName.c_str(), 0., false, pActX);
       if(0!=(ij%5))
       {
@@ -401,19 +401,19 @@ int CDemoCamera::Initialize()
    // with some delay (default 2 seconds).
    // This is to allow downstream testing of callbacks originating from
    // device threads.
-   pAct = new CPropertyAction (this, &CDemoCamera::OnAsyncLeader);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnAsyncLeader);
    CreateStringProperty("AsyncPropertyLeader", "init", false, pAct);
-   pAct = new CPropertyAction (this, &CDemoCamera::OnAsyncFollower);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnAsyncFollower);
    CreateStringProperty("AsyncPropertyFollower", "init", true, pAct);
    CreateIntegerProperty("AsyncPropertyDelayMS", 2000, false);
 
-   //pAct = new CPropertyAction(this, &CDemoCamera::OnSwitch);
+   //pAct = new CPropertyAction(this, &XZellZeissCamera::OnSwitch);
    //nRet = CreateIntegerProperty("Switch", 0, false, pAct);
    //SetPropertyLimits("Switch", 8, 1004);
 	
 	
 	// scan mode
-   pAct = new CPropertyAction (this, &CDemoCamera::OnScanMode);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnScanMode);
    nRet = CreateIntegerProperty("ScanMode", 1, false, pAct);
    assert(nRet == DEVICE_OK);
    AddAllowedValue("ScanMode","1");
@@ -430,82 +430,82 @@ int CDemoCamera::Initialize()
    assert(nRet == DEVICE_OK);
 
    // camera temperature
-   pAct = new CPropertyAction (this, &CDemoCamera::OnCCDTemp);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnCCDTemp);
    nRet = CreateFloatProperty(MM::g_Keyword_CCDTemperature, 0, false, pAct);
    assert(nRet == DEVICE_OK);
    SetPropertyLimits(MM::g_Keyword_CCDTemperature, -100, 10);
 
    // camera temperature RO
-   pAct = new CPropertyAction (this, &CDemoCamera::OnCCDTemp);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnCCDTemp);
    nRet = CreateFloatProperty("CCDTemperature RO", 0, true, pAct);
    assert(nRet == DEVICE_OK);
 
    // readout time
-   pAct = new CPropertyAction (this, &CDemoCamera::OnReadoutTime);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnReadoutTime);
    nRet = CreateFloatProperty(MM::g_Keyword_ReadoutTime, 0, false, pAct);
    assert(nRet == DEVICE_OK);
 
    // CCD size of the camera we are modeling
-   pAct = new CPropertyAction (this, &CDemoCamera::OnCameraCCDXSize);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnCameraCCDXSize);
    CreateIntegerProperty("OnCameraCCDXSize", 512, false, pAct);
-   pAct = new CPropertyAction (this, &CDemoCamera::OnCameraCCDYSize);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnCameraCCDYSize);
    CreateIntegerProperty("OnCameraCCDYSize", 512, false, pAct);
 
    // Trigger device
-   pAct = new CPropertyAction (this, &CDemoCamera::OnTriggerDevice);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnTriggerDevice);
    CreateStringProperty("TriggerDevice", "", false, pAct);
 
-   pAct = new CPropertyAction (this, &CDemoCamera::OnDropPixels);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnDropPixels);
    CreateIntegerProperty("DropPixels", 0, false, pAct);
    AddAllowedValue("DropPixels", "0");
    AddAllowedValue("DropPixels", "1");
 
-	pAct = new CPropertyAction (this, &CDemoCamera::OnSaturatePixels);
+	pAct = new CPropertyAction (this, &XZellZeissCamera::OnSaturatePixels);
    CreateIntegerProperty("SaturatePixels", 0, false, pAct);
    AddAllowedValue("SaturatePixels", "0");
    AddAllowedValue("SaturatePixels", "1");
 
-   pAct = new CPropertyAction (this, &CDemoCamera::OnFastImage);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnFastImage);
    CreateIntegerProperty("FastImage", 0, false, pAct);
    AddAllowedValue("FastImage", "0");
    AddAllowedValue("FastImage", "1");
 
-   pAct = new CPropertyAction (this, &CDemoCamera::OnFractionOfPixelsToDropOrSaturate);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnFractionOfPixelsToDropOrSaturate);
    CreateFloatProperty("FractionOfPixelsToDropOrSaturate", 0.002, false, pAct);
 	SetPropertyLimits("FractionOfPixelsToDropOrSaturate", 0., 0.1);
 
-   pAct = new CPropertyAction(this, &CDemoCamera::OnShouldRotateImages);
+   pAct = new CPropertyAction(this, &XZellZeissCamera::OnShouldRotateImages);
    CreateIntegerProperty("RotateImages", 0, false, pAct);
    AddAllowedValue("RotateImages", "0");
    AddAllowedValue("RotateImages", "1");
 
-   pAct = new CPropertyAction(this, &CDemoCamera::OnShouldDisplayImageNumber);
+   pAct = new CPropertyAction(this, &XZellZeissCamera::OnShouldDisplayImageNumber);
    CreateIntegerProperty("DisplayImageNumber", 0, false, pAct);
    AddAllowedValue("DisplayImageNumber", "0");
    AddAllowedValue("DisplayImageNumber", "1");
 
-   pAct = new CPropertyAction(this, &CDemoCamera::OnStripeWidth);
+   pAct = new CPropertyAction(this, &XZellZeissCamera::OnStripeWidth);
    CreateFloatProperty("StripeWidth", 0, false, pAct);
    SetPropertyLimits("StripeWidth", 0, 10);
 
-   pAct = new CPropertyAction(this, &CDemoCamera::OnSupportsMultiROI);
+   pAct = new CPropertyAction(this, &XZellZeissCamera::OnSupportsMultiROI);
    CreateIntegerProperty("AllowMultiROI", 0, false, pAct);
    AddAllowedValue("AllowMultiROI", "0");
    AddAllowedValue("AllowMultiROI", "1");
 
-   pAct = new CPropertyAction(this, &CDemoCamera::OnMultiROIFillValue);
+   pAct = new CPropertyAction(this, &XZellZeissCamera::OnMultiROIFillValue);
    CreateIntegerProperty("MultiROIFillValue", 0, false, pAct);
    SetPropertyLimits("MultiROIFillValue", 0, 65536);
 
    // Whether or not to use exposure time sequencing
-   pAct = new CPropertyAction (this, &CDemoCamera::OnIsSequenceable);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnIsSequenceable);
    std::string propName = "UseExposureSequences";
    CreateStringProperty(propName.c_str(), "No", false, pAct);
    AddAllowedValue(propName.c_str(), "Yes");
    AddAllowedValue(propName.c_str(), "No");
 
    // Camera mode: 
-   pAct = new CPropertyAction (this, &CDemoCamera::OnMode);
+   pAct = new CPropertyAction (this, &XZellZeissCamera::OnMode);
    propName = "Mode";
    CreateStringProperty(propName.c_str(), g_Sine_Wave, false, pAct);
    AddAllowedValue(propName.c_str(), g_Sine_Wave);
@@ -513,25 +513,25 @@ int CDemoCamera::Initialize()
    AddAllowedValue(propName.c_str(), g_Color_Test);
 
    // Photon Conversion Factor for Noise type camera
-   pAct = new CPropertyAction(this, &CDemoCamera::OnPCF);
+   pAct = new CPropertyAction(this, &XZellZeissCamera::OnPCF);
    propName = "Photon Conversion Factor";
    CreateFloatProperty(propName.c_str(), pcf_, false, pAct);
    SetPropertyLimits(propName.c_str(), 0.01, 10.0);
 
    // Read Noise (expressed in electrons) for the Noise type camera
-   pAct = new CPropertyAction(this, &CDemoCamera::OnReadNoise);
+   pAct = new CPropertyAction(this, &XZellZeissCamera::OnReadNoise);
    propName = "ReadNoise (electrons)";
    CreateFloatProperty(propName.c_str(), readNoise_, false, pAct);
    SetPropertyLimits(propName.c_str(), 0.25, 50.0);
 
    // Photon Flux for the Noise type camera
-   pAct = new CPropertyAction(this, &CDemoCamera::OnPhotonFlux);
+   pAct = new CPropertyAction(this, &XZellZeissCamera::OnPhotonFlux);
    propName = "Photon Flux";
    CreateFloatProperty(propName.c_str(), photonFlux_, false, pAct);
    SetPropertyLimits(propName.c_str(), 2.0, 5000.0);
 
    // Simulate application crash
-   pAct = new CPropertyAction(this, &CDemoCamera::OnCrash);
+   pAct = new CPropertyAction(this, &XZellZeissCamera::OnCrash);
    CreateStringProperty("SimulateCrash", "", false, pAct);
    AddAllowedValue("SimulateCrash", "");
    AddAllowedValue("SimulateCrash", "Dereference Null Pointer");
@@ -576,7 +576,7 @@ int CDemoCamera::Initialize()
 * After Shutdown() we should be allowed to call Initialize() again to load the device
 * without causing problems.
 */
-int CDemoCamera::Shutdown()
+int XZellZeissCamera::Shutdown()
 {
     LogMessage("API METHOD ENTRY: Shutdown");
    initialized_ = false;
@@ -589,7 +589,7 @@ int CDemoCamera::Shutdown()
 * (i.e., before readout).  This behavior is needed for proper synchronization with the shutter.
 * Required by the MM::Camera API.
 */
-int CDemoCamera::SnapImage()
+int XZellZeissCamera::SnapImage()
 {
     LogMessage("API METHOD ENTRY: SnapImage");
 	static int callCounter = 0;
@@ -638,7 +638,7 @@ int CDemoCamera::SnapImage()
 * the pixel buffer on its own. In other words, the buffer can change only if
 * appropriate properties are set (such as binning, pixel type, etc.)
 */
-const unsigned char* CDemoCamera::GetImageBuffer()
+const unsigned char* XZellZeissCamera::GetImageBuffer()
 {
     LogMessage("API METHOD ENTRY: GetImageBuffer");
    MMThreadGuard g(imgPixelsLock_);
@@ -652,7 +652,7 @@ const unsigned char* CDemoCamera::GetImageBuffer()
 * Returns image buffer X-size in pixels.
 * Required by the MM::Camera API.
 */
-unsigned CDemoCamera::GetImageWidth() const
+unsigned XZellZeissCamera::GetImageWidth() const
 {
     LogMessage("API METHOD ENTRY: GetImageWidth");
    return img_.Width();
@@ -662,7 +662,7 @@ unsigned CDemoCamera::GetImageWidth() const
 * Returns image buffer Y-size in pixels.
 * Required by the MM::Camera API.
 */
-unsigned CDemoCamera::GetImageHeight() const
+unsigned XZellZeissCamera::GetImageHeight() const
 {
     LogMessage("API METHOD ENTRY: GetImageHeight");
    return img_.Height();
@@ -672,7 +672,7 @@ unsigned CDemoCamera::GetImageHeight() const
 * Returns image buffer pixel depth in bytes.
 * Required by the MM::Camera API.
 */
-unsigned CDemoCamera::GetImageBytesPerPixel() const
+unsigned XZellZeissCamera::GetImageBytesPerPixel() const
 {
     LogMessage("API METHOD ENTRY: GetImageBytesPerPixel");
    return img_.Depth();
@@ -684,7 +684,7 @@ unsigned CDemoCamera::GetImageBytesPerPixel() const
 * a guideline on how to interpret pixel values.
 * Required by the MM::Camera API.
 */
-unsigned CDemoCamera::GetBitDepth() const
+unsigned XZellZeissCamera::GetBitDepth() const
 {
     LogMessage("API METHOD ENTRY: GetBitDepth");
    return bitDepth_;
@@ -694,7 +694,7 @@ unsigned CDemoCamera::GetBitDepth() const
 * Returns the size in bytes of the image buffer.
 * Required by the MM::Camera API.
 */
-long CDemoCamera::GetImageBufferSize() const
+long XZellZeissCamera::GetImageBufferSize() const
 {
     LogMessage("API METHOD ENTRY: GetImageBufferSize");
    return img_.Width() * img_.Height() * GetImageBytesPerPixel();
@@ -716,7 +716,7 @@ long CDemoCamera::GetImageBufferSize() const
 * @param xSize - width
 * @param ySize - height
 */
-int CDemoCamera::SetROI(unsigned x, unsigned y, unsigned xSize, unsigned ySize)
+int XZellZeissCamera::SetROI(unsigned x, unsigned y, unsigned xSize, unsigned ySize)
 {
     LogMessage("API METHOD ENTRY: SetROI");
    multiROIXs_.clear();
@@ -745,7 +745,7 @@ int CDemoCamera::SetROI(unsigned x, unsigned y, unsigned xSize, unsigned ySize)
 * If multiple ROIs are set, then the returned ROI should encompass all of them.
 * Required by the MM::Camera API.
 */
-int CDemoCamera::GetROI(unsigned& x, unsigned& y, unsigned& xSize, unsigned& ySize)
+int XZellZeissCamera::GetROI(unsigned& x, unsigned& y, unsigned& xSize, unsigned& ySize)
 {
     LogMessage("API METHOD ENTRY: GetROI");
    x = roiX_;
@@ -761,7 +761,7 @@ int CDemoCamera::GetROI(unsigned& x, unsigned& y, unsigned& xSize, unsigned& ySi
 * Resets the Region of Interest to full frame.
 * Required by the MM::Camera API.
 */
-int CDemoCamera::ClearROI()
+int XZellZeissCamera::ClearROI()
 {
     LogMessage("API METHOD ENTRY: ClearROI");
    ResizeImageBuffer();
@@ -779,7 +779,7 @@ int CDemoCamera::ClearROI()
  * Optional method in the MM::Camera API; by default cameras do not support
  * multiple ROIs.
  */
-bool CDemoCamera::SupportsMultiROI()
+bool XZellZeissCamera::SupportsMultiROI()
 {
     LogMessage("API METHOD ENTRY: SupportsMultiROI");
    return supportsMultiROI_;
@@ -792,7 +792,7 @@ bool CDemoCamera::SupportsMultiROI()
  * Optional method in the MM::Camera API; by default cameras do not support
  * multiple ROIs, so this method returns false.
  */
-bool CDemoCamera::IsMultiROISet()
+bool XZellZeissCamera::IsMultiROISet()
 {
     LogMessage("API METHOD ENTRY: IsMultiROISet");
    return multiROIXs_.size() > 0;
@@ -804,7 +804,7 @@ bool CDemoCamera::IsMultiROISet()
  * Optional method in the MM::Camera API; by default cameras do not support
  * multiple ROIs.
  */
-int CDemoCamera::GetMultiROICount(unsigned int& count)
+int XZellZeissCamera::GetMultiROICount(unsigned int& count)
 {
     LogMessage("API METHOD ENTRY: GetMultiROICount");
    count = (unsigned int) multiROIXs_.size();
@@ -822,7 +822,7 @@ int CDemoCamera::GetMultiROICount(unsigned int& count)
  * @param heights Heights of the ROIs, in pixels.
  * @param numROIs Length of the arrays.
  */
-int CDemoCamera::SetMultiROI(const unsigned int* xs, const unsigned int* ys,
+int XZellZeissCamera::SetMultiROI(const unsigned int* xs, const unsigned int* ys,
       const unsigned* widths, const unsigned int* heights,
       unsigned numROIs)
 {
@@ -876,7 +876,7 @@ int CDemoCamera::SetMultiROI(const unsigned int* xs, const unsigned int* ys,
  * @param numROIs Length of the input arrays. If there are fewer ROIs than
  *        this, then this value must be updated to reflect the new count.
  */
-int CDemoCamera::GetMultiROI(unsigned* xs, unsigned* ys, unsigned* widths,
+int XZellZeissCamera::GetMultiROI(unsigned* xs, unsigned* ys, unsigned* widths,
       unsigned* heights, unsigned* length)
 {
     LogMessage("API METHOD ENTRY: GetMultiROI");
@@ -901,7 +901,7 @@ int CDemoCamera::GetMultiROI(unsigned* xs, unsigned* ys, unsigned* widths,
 * Returns the current exposure setting in milliseconds.
 * Required by the MM::Camera API.
 */
-double CDemoCamera::GetExposure() const
+double XZellZeissCamera::GetExposure() const
 {
     LogMessage("API METHOD ENTRY: GetExposure");
    char buf[MM::MaxStrLength];
@@ -915,7 +915,7 @@ double CDemoCamera::GetExposure() const
  * Returns the current exposure from a sequence and increases the sequence counter
  * Used for exposure sequences
  */
-double CDemoCamera::GetSequenceExposure() 
+double XZellZeissCamera::GetSequenceExposure() 
 {
    if (exposureSequence_.size() == 0) 
       return this->GetExposure();
@@ -933,7 +933,7 @@ double CDemoCamera::GetSequenceExposure()
 * Sets exposure in milliseconds.
 * Required by the MM::Camera API.
 */
-void CDemoCamera::SetExposure(double exp)
+void XZellZeissCamera::SetExposure(double exp)
 {
     LogMessage("API METHOD ENTRY: SetExposure");
    SetProperty(MM::g_Keyword_Exposure, CDeviceUtils::ConvertToString(exp));
@@ -944,7 +944,7 @@ void CDemoCamera::SetExposure(double exp)
 * Returns the current binning factor.
 * Required by the MM::Camera API.
 */
-int CDemoCamera::GetBinning() const
+int XZellZeissCamera::GetBinning() const
 {
     LogMessage("API METHOD ENTRY: GetBinning");
    char buf[MM::MaxStrLength];
@@ -958,20 +958,20 @@ int CDemoCamera::GetBinning() const
 * Sets binning factor.
 * Required by the MM::Camera API.
 */
-int CDemoCamera::SetBinning(int binF)
+int XZellZeissCamera::SetBinning(int binF)
 {
     LogMessage("API METHOD ENTRY: SetBinning");
    return SetProperty(MM::g_Keyword_Binning, CDeviceUtils::ConvertToString(binF));
 }
 
-int CDemoCamera::IsExposureSequenceable(bool& isSequenceable) const
+int XZellZeissCamera::IsExposureSequenceable(bool& isSequenceable) const
 {
     LogMessage("API METHOD ENTRY: IsExposureSequenceable");
    isSequenceable = isSequenceable_;
    return DEVICE_OK;
 }
 
-int CDemoCamera::GetExposureSequenceMaxLength(long& nrEvents) const
+int XZellZeissCamera::GetExposureSequenceMaxLength(long& nrEvents) const
 {
     LogMessage("API METHOD ENTRY: GetExposureSequenceMaxLength");
    if (!isSequenceable_) {
@@ -982,7 +982,7 @@ int CDemoCamera::GetExposureSequenceMaxLength(long& nrEvents) const
    return DEVICE_OK;
 }
 
-int CDemoCamera::StartExposureSequence()
+int XZellZeissCamera::StartExposureSequence()
 {
     LogMessage("API METHOD ENTRY: StartExposureSequence");
    if (!isSequenceable_) {
@@ -994,7 +994,7 @@ int CDemoCamera::StartExposureSequence()
    return DEVICE_OK;
 }
 
-int CDemoCamera::StopExposureSequence()
+int XZellZeissCamera::StopExposureSequence()
 {
     LogMessage("API METHOD ENTRY: StopExposureSequence");
    if (!isSequenceable_) {
@@ -1010,7 +1010,7 @@ int CDemoCamera::StopExposureSequence()
 /**
  * Clears the list of exposures used in sequences
  */
-int CDemoCamera::ClearExposureSequence()
+int XZellZeissCamera::ClearExposureSequence()
 {
     LogMessage("API METHOD ENTRY: ClearExposureSequence");
    if (!isSequenceable_) {
@@ -1024,7 +1024,7 @@ int CDemoCamera::ClearExposureSequence()
 /**
  * Adds an exposure to a list of exposures used in sequences
  */
-int CDemoCamera::AddToExposureSequence(double exposureTime_ms) 
+int XZellZeissCamera::AddToExposureSequence(double exposureTime_ms) 
 {
     LogMessage("API METHOD ENTRY: AddToExposureSequence");
    if (!isSequenceable_) {
@@ -1035,7 +1035,7 @@ int CDemoCamera::AddToExposureSequence(double exposureTime_ms)
    return DEVICE_OK;
 }
 
-int CDemoCamera::SendExposureSequence() const {
+int XZellZeissCamera::SendExposureSequence() const {
     LogMessage("API METHOD ENTRY: SendExposureSequence");
    if (!isSequenceable_) {
       return DEVICE_UNSUPPORTED_COMMAND;
@@ -1044,7 +1044,7 @@ int CDemoCamera::SendExposureSequence() const {
    return DEVICE_OK;
 }
 
-int CDemoCamera::SetAllowedBinning() 
+int XZellZeissCamera::SetAllowedBinning() 
 {
    std::vector<std::string> binValues;
    binValues.push_back("1");
@@ -1071,7 +1071,7 @@ int CDemoCamera::SetAllowedBinning()
  * Please implement this yourself and do not rely on the base class implementation
  * The Base class implementation is deprecated and will be removed shortly
  */
-int CDemoCamera::StartSequenceAcquisition(double interval)
+int XZellZeissCamera::StartSequenceAcquisition(double interval)
 {
     LogMessage("API METHOD ENTRY: StartSequenceAcquisition(interval)");
    return StartSequenceAcquisition(LONG_MAX, interval, false);            
@@ -1080,7 +1080,7 @@ int CDemoCamera::StartSequenceAcquisition(double interval)
 /**                                                                       
 * Stop and wait for the Sequence thread finished                                   
 */                                                                        
-int CDemoCamera::StopSequenceAcquisition()                                     
+int XZellZeissCamera::StopSequenceAcquisition()                                     
 {
     LogMessage("API METHOD ENTRY: StopSequenceAcquisition");
    if (!thd_->IsStopped()) {
@@ -1096,7 +1096,7 @@ int CDemoCamera::StopSequenceAcquisition()
 * A sequence acquisition should run on its own thread and transport new images
 * coming of the camera into the MMCore circular buffer.
 */
-int CDemoCamera::StartSequenceAcquisition(long numImages, double interval_ms, bool stopOnOverflow)
+int XZellZeissCamera::StartSequenceAcquisition(long numImages, double interval_ms, bool stopOnOverflow)
 {
     LogMessage("API METHOD ENTRY: StartSequenceAcquisition(numImages, interval_ms, stopOnOverflow)");
    if (IsCapturing())
@@ -1115,7 +1115,7 @@ int CDemoCamera::StartSequenceAcquisition(long numImages, double interval_ms, bo
 /*
  * Inserts Image and MetaData into MMCore circular Buffer
  */
-int CDemoCamera::InsertImage()
+int XZellZeissCamera::InsertImage()
 {
    MM::MMTime timeStamp = this->GetCurrentMMTime();
    char label[MM::MaxStrLength];
@@ -1161,7 +1161,7 @@ int CDemoCamera::InsertImage()
  * Do actual capturing
  * Called from inside the thread  
  */
-int CDemoCamera::RunSequenceOnThread()
+int XZellZeissCamera::RunSequenceOnThread()
 {
    int ret=DEVICE_ERR;
    MM::MMTime startTime = GetCurrentMMTime();
@@ -1197,7 +1197,7 @@ int CDemoCamera::RunSequenceOnThread()
    return ret;
 };
 
-bool CDemoCamera::IsCapturing() {
+bool XZellZeissCamera::IsCapturing() {
     LogMessage("API METHOD ENTRY: IsCapturing");
    return !thd_->IsStopped();
 }
@@ -1205,7 +1205,7 @@ bool CDemoCamera::IsCapturing() {
 /*
  * called from the thread function before exit 
  */
-void CDemoCamera::OnThreadExiting() throw()
+void XZellZeissCamera::OnThreadExiting() throw()
 {
    try
    {
@@ -1219,7 +1219,7 @@ void CDemoCamera::OnThreadExiting() throw()
 }
 
 
-MySequenceThread::MySequenceThread(CDemoCamera* pCam)
+MySequenceThread::MySequenceThread(XZellZeissCamera* pCam)
    :intervalMs_(default_intervalMS)
    ,numImages_(default_numImages)
    ,imageCounter_(0)
@@ -1295,10 +1295,10 @@ int MySequenceThread::svc(void) throw()
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// CDemoCamera Action handlers
+// XZellZeissCamera Action handlers
 ///////////////////////////////////////////////////////////////////////////////
 
-int CDemoCamera::OnMaxExposure(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnMaxExposure(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
@@ -1316,7 +1316,7 @@ int CDemoCamera::OnMaxExposure(MM::PropertyBase* pProp, MM::ActionType eAct)
 * this Read Only property will update whenever any property is modified
 */
 
-int CDemoCamera::OnTestProperty(MM::PropertyBase* pProp, MM::ActionType eAct, long indexx)
+int XZellZeissCamera::OnTestProperty(MM::PropertyBase* pProp, MM::ActionType eAct, long indexx)
 {
    if (eAct == MM::BeforeGet)
    {
@@ -1330,7 +1330,7 @@ int CDemoCamera::OnTestProperty(MM::PropertyBase* pProp, MM::ActionType eAct, lo
 
 }
 
-void CDemoCamera::SlowPropUpdate(std::string leaderValue)
+void XZellZeissCamera::SlowPropUpdate(std::string leaderValue)
 {
       // wait in order to simulate a device doing something slowly
       // in a thread
@@ -1343,7 +1343,7 @@ void CDemoCamera::SlowPropUpdate(std::string leaderValue)
       OnPropertyChanged("AsyncPropertyFollower", leaderValue.c_str());
    }
 
-int CDemoCamera::OnAsyncFollower(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnAsyncFollower(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet){
       MMThreadGuard g(asyncFollowerLock_);
@@ -1353,7 +1353,7 @@ int CDemoCamera::OnAsyncFollower(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CDemoCamera::OnAsyncLeader(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnAsyncLeader(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet){
       pProp->Set(asyncLeader_.c_str());
@@ -1361,7 +1361,7 @@ int CDemoCamera::OnAsyncLeader(MM::PropertyBase* pProp, MM::ActionType eAct)
    if (eAct == MM::AfterSet)
    {
       pProp->Get(asyncLeader_);
-      fut_ = std::async(std::launch::async, &CDemoCamera::SlowPropUpdate, this, asyncLeader_);
+      fut_ = std::async(std::launch::async, &XZellZeissCamera::SlowPropUpdate, this, asyncLeader_);
    }
 	return DEVICE_OK;
 }
@@ -1369,7 +1369,7 @@ int CDemoCamera::OnAsyncLeader(MM::PropertyBase* pProp, MM::ActionType eAct)
 /**
 * Handles "Binning" property.
 */
-int CDemoCamera::OnBinning(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnBinning(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    int ret = DEVICE_ERR;
    switch(eAct)
@@ -1419,7 +1419,7 @@ int CDemoCamera::OnBinning(MM::PropertyBase* pProp, MM::ActionType eAct)
 /**
 * Handles "PixelType" property.
 */
-int CDemoCamera::OnPixelType(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnPixelType(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    int ret = DEVICE_ERR;
    switch(eAct)
@@ -1519,7 +1519,7 @@ int CDemoCamera::OnPixelType(MM::PropertyBase* pProp, MM::ActionType eAct)
 /**
 * Handles "BitDepth" property.
 */
-int CDemoCamera::OnBitDepth(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnBitDepth(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    int ret = DEVICE_ERR;
    switch(eAct)
@@ -1635,7 +1635,7 @@ int CDemoCamera::OnBitDepth(MM::PropertyBase* pProp, MM::ActionType eAct)
 /**
 * Handles "ReadoutTime" property.
 */
-int CDemoCamera::OnReadoutTime(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnReadoutTime(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::AfterSet)
    {
@@ -1652,7 +1652,7 @@ int CDemoCamera::OnReadoutTime(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CDemoCamera::OnDropPixels(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnDropPixels(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::AfterSet)
    {
@@ -1668,7 +1668,7 @@ int CDemoCamera::OnDropPixels(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CDemoCamera::OnFastImage(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnFastImage(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::AfterSet)
    {
@@ -1684,7 +1684,7 @@ int CDemoCamera::OnFastImage(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CDemoCamera::OnSaturatePixels(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnSaturatePixels(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::AfterSet)
    {
@@ -1700,7 +1700,7 @@ int CDemoCamera::OnSaturatePixels(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CDemoCamera::OnFractionOfPixelsToDropOrSaturate(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnFractionOfPixelsToDropOrSaturate(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::AfterSet)
    {
@@ -1716,7 +1716,7 @@ int CDemoCamera::OnFractionOfPixelsToDropOrSaturate(MM::PropertyBase* pProp, MM:
    return DEVICE_OK;
 }
 
-int CDemoCamera::OnShouldRotateImages(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnShouldRotateImages(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::AfterSet)
    {
@@ -1732,7 +1732,7 @@ int CDemoCamera::OnShouldRotateImages(MM::PropertyBase* pProp, MM::ActionType eA
    return DEVICE_OK;
 }
 
-int CDemoCamera::OnShouldDisplayImageNumber(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnShouldDisplayImageNumber(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::AfterSet)
    {
@@ -1748,7 +1748,7 @@ int CDemoCamera::OnShouldDisplayImageNumber(MM::PropertyBase* pProp, MM::ActionT
    return DEVICE_OK;
 }
 
-int CDemoCamera::OnStripeWidth(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnStripeWidth(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::AfterSet)
    {
@@ -1762,7 +1762,7 @@ int CDemoCamera::OnStripeWidth(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CDemoCamera::OnSupportsMultiROI(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnSupportsMultiROI(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::AfterSet)
    {
@@ -1778,7 +1778,7 @@ int CDemoCamera::OnSupportsMultiROI(MM::PropertyBase* pProp, MM::ActionType eAct
    return DEVICE_OK;
 }
 
-int CDemoCamera::OnMultiROIFillValue(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnMultiROIFillValue(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::AfterSet)
    {
@@ -1798,7 +1798,7 @@ int CDemoCamera::OnMultiROIFillValue(MM::PropertyBase* pProp, MM::ActionType eAc
 * Handles "ScanMode" property.
 * Changes allowed Binning values to test whether the UI updates properly
 */
-int CDemoCamera::OnScanMode(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnScanMode(MM::PropertyBase* pProp, MM::ActionType eAct)
 { 
    if (eAct == MM::AfterSet) {
       pProp->Get(scanMode_);
@@ -1818,7 +1818,7 @@ int CDemoCamera::OnScanMode(MM::PropertyBase* pProp, MM::ActionType eAct)
 
 
 
-int CDemoCamera::OnCameraCCDXSize(MM::PropertyBase* pProp , MM::ActionType eAct)
+int XZellZeissCamera::OnCameraCCDXSize(MM::PropertyBase* pProp , MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
@@ -1840,7 +1840,7 @@ int CDemoCamera::OnCameraCCDXSize(MM::PropertyBase* pProp , MM::ActionType eAct)
 
 }
 
-int CDemoCamera::OnCameraCCDYSize(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnCameraCCDYSize(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
@@ -1862,7 +1862,7 @@ int CDemoCamera::OnCameraCCDYSize(MM::PropertyBase* pProp, MM::ActionType eAct)
 
 }
 
-int CDemoCamera::OnTriggerDevice(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnTriggerDevice(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
@@ -1876,7 +1876,7 @@ int CDemoCamera::OnTriggerDevice(MM::PropertyBase* pProp, MM::ActionType eAct)
 }
 
 
-int CDemoCamera::OnCCDTemp(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnCCDTemp(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
@@ -1889,7 +1889,7 @@ int CDemoCamera::OnCCDTemp(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CDemoCamera::OnIsSequenceable(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnIsSequenceable(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    std::string val = "Yes";
    if (eAct == MM::BeforeGet)
@@ -1914,7 +1914,7 @@ int CDemoCamera::OnIsSequenceable(MM::PropertyBase* pProp, MM::ActionType eAct)
 }
 
 
-int CDemoCamera::OnMode(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnMode(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    std::string val;
    if (eAct == MM::BeforeGet)
@@ -1955,7 +1955,7 @@ int CDemoCamera::OnMode(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CDemoCamera::OnPCF(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnPCF(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
@@ -1968,7 +1968,7 @@ int CDemoCamera::OnPCF(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CDemoCamera::OnPhotonFlux(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnPhotonFlux(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
@@ -1981,7 +1981,7 @@ int CDemoCamera::OnPhotonFlux(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CDemoCamera::OnReadNoise(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnReadNoise(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
@@ -1995,7 +1995,7 @@ int CDemoCamera::OnReadNoise(MM::PropertyBase* pProp, MM::ActionType eAct)
 }
 
 
-int CDemoCamera::OnCrash(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XZellZeissCamera::OnCrash(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    AddAllowedValue("SimulateCrash", "");
    AddAllowedValue("SimulateCrash", "Dereference Null Pointer");
@@ -2024,13 +2024,13 @@ int CDemoCamera::OnCrash(MM::PropertyBase* pProp, MM::ActionType eAct)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Private CDemoCamera methods
+// Private XZellZeissCamera methods
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
 * Sync internal image buffer size to the chosen property values.
 */
-int CDemoCamera::ResizeImageBuffer()
+int XZellZeissCamera::ResizeImageBuffer()
 {
    char buf[MM::MaxStrLength];
    //int ret = GetProperty(MM::g_Keyword_Binning, buf);
@@ -2070,7 +2070,7 @@ int CDemoCamera::ResizeImageBuffer()
    return DEVICE_OK;
 }
 
-void CDemoCamera::GenerateEmptyImage(ImgBuffer& img)
+void XZellZeissCamera::GenerateEmptyImage(ImgBuffer& img)
 {
    MMThreadGuard g(imgPixelsLock_);
    if (img.Height() == 0 || img.Width() == 0 || img.Depth() == 0)
@@ -2088,7 +2088,7 @@ void CDemoCamera::GenerateEmptyImage(ImgBuffer& img)
 * 1. a spatial sine wave.
 * 2. Gaussian noise
 */
-void CDemoCamera::GenerateSyntheticImage(ImgBuffer& img, double exp)
+void XZellZeissCamera::GenerateSyntheticImage(ImgBuffer& img, double exp)
 {
   
    MMThreadGuard g(imgPixelsLock_);
@@ -2484,7 +2484,7 @@ void CDemoCamera::GenerateSyntheticImage(ImgBuffer& img, double exp)
 }
 
 
-bool CDemoCamera::GenerateColorTestPattern(ImgBuffer& img)
+bool XZellZeissCamera::GenerateColorTestPattern(ImgBuffer& img)
 {
    unsigned width = img.Width(), height = img.Height();
    switch (img.Depth())
@@ -2562,7 +2562,7 @@ bool CDemoCamera::GenerateColorTestPattern(ImgBuffer& img)
 }
 
 
-void CDemoCamera::TestResourceLocking(const bool recurse)
+void XZellZeissCamera::TestResourceLocking(const bool recurse)
 {
    if(recurse)
       TestResourceLocking(false);
@@ -2571,7 +2571,7 @@ void CDemoCamera::TestResourceLocking(const bool recurse)
 /**
 * Generate an image with offset plus noise
 */
-void CDemoCamera::AddBackgroundAndNoise(ImgBuffer& img, double mean, double stdDev)
+void XZellZeissCamera::AddBackgroundAndNoise(ImgBuffer& img, double mean, double stdDev)
 { 
 	char buf[MM::MaxStrLength];
    GetProperty(MM::g_Keyword_PixelType, buf);
@@ -2623,7 +2623,7 @@ void CDemoCamera::AddBackgroundAndNoise(ImgBuffer& img, double mean, double stdD
 * photon flux * exposure time / conversion factor
 * Assumes QE of 100%
 */
-void CDemoCamera::AddSignal(ImgBuffer& img, double photonFlux, double exp, double cf)
+void XZellZeissCamera::AddSignal(ImgBuffer& img, double photonFlux, double exp, double cf)
 { 
 	char buf[MM::MaxStrLength];
    GetProperty(MM::g_Keyword_PixelType, buf);
@@ -2676,7 +2676,7 @@ void CDemoCamera::AddSignal(ImgBuffer& img, double photonFlux, double exp, doubl
  * Uses Marsaglia polar method to generate Gaussian distributed value.  
  * Then distributes this around mean with the desired std
  */
-double CDemoCamera::GaussDistributedValue(double mean, double std)
+double XZellZeissCamera::GaussDistributedValue(double mean, double std)
 {
    double s = 2;
    double u = 1; // incosequential, but avoid potantial use of uninitialized value
@@ -2695,7 +2695,7 @@ double CDemoCamera::GaussDistributedValue(double mean, double std)
    return mean + std * x;
 }
 
-int CDemoCamera::RegisterImgManipulatorCallBack(ImgManipulator* imgManpl)
+int XZellZeissCamera::RegisterImgManipulatorCallBack(ImgManipulator* imgManpl)
 {
    imgManpl_ = imgManpl;
    return DEVICE_OK;
@@ -4312,7 +4312,7 @@ int DemoGalvo::Initialize()
             MM::Hub* cHub = GetCoreCallback()->GetParentHub(camera);
             if (cHub == pHub)
             {
-               demoCamera_ = (CDemoCamera*) camera;
+               demoCamera_ = (XZellZeissCamera*) camera;
                demoCamera_->RegisterImgManipulatorCallBack(this);
                LogMessage("DemoGalvo registered as callback");
                break;

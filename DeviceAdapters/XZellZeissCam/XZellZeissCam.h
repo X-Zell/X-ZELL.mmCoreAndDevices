@@ -107,17 +107,17 @@ private:
 
 
 //////////////////////////////////////////////////////////////////////////////
-// CDemoCamera class
+// XZellZeissCamera class
 // Simulation of the Camera device
 //////////////////////////////////////////////////////////////////////////////
 
 class MySequenceThread;
 
-class CDemoCamera : public CCameraBase<CDemoCamera>  
+class XZellZeissCamera : public CCameraBase<XZellZeissCamera>  
 {
 public:
-   CDemoCamera();
-   ~CDemoCamera();
+   XZellZeissCamera();
+   ~XZellZeissCamera();
   
    // MMDevice API
    // ------------
@@ -295,7 +295,7 @@ class MySequenceThread : public MMDeviceThreadBase
    friend class CDemoCamera;
    enum { default_numImages=1, default_intervalMS = 100 };
    public:
-      MySequenceThread(CDemoCamera* pCam);
+      MySequenceThread(XZellZeissCamera* pCam);
       ~MySequenceThread();
       void Stop();
       void Start(long numImages, double intervalMs);
@@ -316,7 +316,7 @@ class MySequenceThread : public MMDeviceThreadBase
       long imageCounter_;                                                       
       bool stop_;                                                               
       bool suspend_;                                                            
-      CDemoCamera* camera_;                                                     
+      XZellZeissCamera* camera_;                                                     
       MM::MMTime startTime_;                                                    
       MM::MMTime actualDuration_;                                               
       MM::MMTime lastFrameTime_;                                                
@@ -1175,7 +1175,7 @@ public:
 
 private:
 
-   CDemoCamera* demoCamera_;
+   XZellZeissCamera* demoCamera_;
    unsigned short gaussianMask_[10][10];
 
    double GaussValue(double amplitude, double sigmaX, double sigmaY, int muX, int muY, int x, int y);
