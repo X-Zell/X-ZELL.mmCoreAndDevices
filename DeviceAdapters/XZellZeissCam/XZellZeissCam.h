@@ -315,42 +315,6 @@ class MySequenceThread : public MMDeviceThreadBase
       MM::MMTime lastFrameTime_;                                                
       MMThreadLock stopLock_;                                                   
       MMThreadLock suspendLock_;                                                
-}; 
-
-//////////////////////////////////////////////////////////////////////////////
-// CDemoObjectiveTurret class
-// Simulation of the objective changer (state device)
-//////////////////////////////////////////////////////////////////////////////
-
-class CDemoObjectiveTurret : public CStateDeviceBase<CDemoObjectiveTurret>
-{
-public:
-   CDemoObjectiveTurret();
-   ~CDemoObjectiveTurret();
-  
-   // MMDevice API
-   // ------------
-   int Initialize();
-   int Shutdown();
-  
-   void GetName(char* pszName) const ;
-   bool Busy() {return busy_;}
-   unsigned long GetNumberOfPositions()const {return numPos_;}
-
-   // action interface
-   // ----------------
-   int OnState(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnTrigger(MM::PropertyBase* pProp, MM::ActionType eAct);
-
-private:
-   long numPos_;
-   bool busy_;
-   bool initialized_;
-   bool sequenceRunning_;
-   unsigned long sequenceMaxSize_;
-   unsigned long sequenceIndex_;
-   std::vector<std::string> sequence_;
-   long position_;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -393,88 +357,6 @@ private:
    bool gateOpen_;
    bool isClosed_;
    long position_;
-};
-
-//////////////////////////////////////////////////////////////////////////////
-// DemoShutter class
-// Simulation of shutter device
-//////////////////////////////////////////////////////////////////////////////
-class DemoShutter : public CShutterBase<DemoShutter>
-{
-public:
-   DemoShutter() : state_(false), initialized_(false), changedTime_(0.0)
-   {
-      EnableDelay(); // signals that the dealy setting will be used
-      
-      // parent ID display
-      CreateHubIDProperty();
-   }
-   ~DemoShutter() {}
-
-   int Initialize();
-   int Shutdown() {initialized_ = false; return DEVICE_OK;}
-
-   void GetName (char* pszName) const;
-   bool Busy();
-
-   // Shutter API
-   int SetOpen (bool open = true)
-   {
-      state_ = open;
-      changedTime_ = GetCurrentMMTime();
-      return DEVICE_OK;
-   }
-   int GetOpen(bool& open)
-   {
-      open = state_;
-      return DEVICE_OK;
-   }
-   int Fire(double /*deltaT*/)
-   { return DEVICE_UNSUPPORTED_COMMAND; }
-
-   // action interface
-   int OnState(MM::PropertyBase* pProp, MM::ActionType eAct);
-
-private:
-   bool state_;
-   bool initialized_;
-   MM::MMTime changedTime_;
-};
-
-//////////////////////////////////////////////////////////////////////////////
-// DemoMagnifier class
-// Simulation of magnifier Device
-//////////////////////////////////////////////////////////////////////////////
-class DemoMagnifier : public CMagnifierBase<DemoMagnifier>
-{
-public:
-   DemoMagnifier();
-
-   ~DemoMagnifier () {};
-
-   int Shutdown() { return DEVICE_OK; }
-
-   void GetName(char* name) const;
-
-   bool Busy() {return false;}
-   int Initialize();
-
-   double GetMagnification();
-
-   // action interface
-   // ----------------
-   int OnPosition(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnZoom(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnHighMag(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnVariable(MM::PropertyBase* pProp, MM::ActionType eAct);
-
-private:
-   std::string highMagString();
-
-   int position_;
-   double zoomPosition_;
-   double highMag_;
-   bool variable_;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -784,64 +666,6 @@ private:
 };
 
 
-
-
-//////////////////////////////////////////////////////////////////////////////
-// DemoAutoFocus class
-// Simulation of the auto-focusing module
-//////////////////////////////////////////////////////////////////////////////
-class DemoAutoFocus : public CAutoFocusBase<DemoAutoFocus>
-{
-public:
-   DemoAutoFocus() : 
-      running_(false), 
-      busy_(false), 
-      initialized_(false)  
-      {
-         CreateHubIDProperty();
-      }
-
-   ~DemoAutoFocus() {}
-      
-   // MMDevice API
-   bool Busy() {return busy_;}
-   void GetName(char* pszName) const;
-
-   int Initialize();
-   int Shutdown(){initialized_ = false; return DEVICE_OK;}
-
-   // AutoFocus API
-   virtual int SetContinuousFocusing(bool state)
-   {
-      running_ = state;
-      return DEVICE_OK;
-   }
-   virtual int GetContinuousFocusing(bool& state)
-   {
-      state = running_;
-      return DEVICE_OK;
-   }
-   virtual bool IsContinuousFocusLocked() { return running_; }
-   virtual int FullFocus() { return DEVICE_OK; }
-   virtual int IncrementalFocus() { return DEVICE_OK; }
-   virtual int GetLastFocusScore(double& score)
-   {
-      score = 0.0;
-      return DEVICE_OK;
-   }
-   virtual int GetCurrentFocusScore(double& score)
-   {
-      score = 1.0;
-      return DEVICE_OK;
-   }
-   virtual int GetOffset(double& /*offset*/) { return DEVICE_OK; }
-   virtual int SetOffset(double /*offset*/) { return DEVICE_OK; }
-
-private:
-   bool running_;
-   bool busy_;
-   bool initialized_;
-};
 
 struct Point
 {
