@@ -134,17 +134,6 @@ public:
    int ClearROI();
    bool SupportsMultiROI();
    bool IsMultiROISet();
-   int GetMultiROICount(unsigned& count);
-   int SetMultiROI(const unsigned* xs, const unsigned* ys,
-           const unsigned* widths, const unsigned* heights,
-           unsigned numROIs);
-   int GetMultiROI(unsigned* xs, unsigned* ys, unsigned* widths,
-           unsigned* heights, unsigned* length);
-   int PrepareSequenceAcqusition()
-   {
-       LogMessage("API METHOD ENTRY: PrepareSequenceAcqusition");
-       return DEVICE_OK;
-   }
    int StartSequenceAcquisition(double interval);
    int StartSequenceAcquisition(long numImages, double interval_ms, bool stopOnOverflow);
    int StopSequenceAcquisition();
@@ -160,13 +149,10 @@ public:
    int GetBinning() const;
    int SetBinning(int bS);
 
-   int IsExposureSequenceable(bool& isSequenceable) const;
-   int GetExposureSequenceMaxLength(long& nrEvents) const;
-   int StartExposureSequence();
-   int StopExposureSequence();
-   int ClearExposureSequence();
-   int AddToExposureSequence(double exposureTime_ms);
-   int SendExposureSequence() const;
+   int   IsExposureSequenceable(bool& isSequenceable) const
+   {
+       isSequenceable = false; return DEVICE_OK;
+   }
 
    unsigned  GetNumberOfComponents() const { return nComponents_;};
 
@@ -314,22 +300,6 @@ class MySequenceThread : public MMDeviceThreadBase
       MM::MMTime lastFrameTime_;                                                
       MMThreadLock stopLock_;                                                   
       MMThreadLock suspendLock_;                                                
-};
-
-struct Point
-{
-   public:
-      Point(int lx, int ly) {x = lx; y = ly;};
-   int x;
-   int y;
-};
-
-struct PointD
-{
-   public:
-      PointD(double lx, double ly) {x = lx; y = ly;};
-   double x;
-   double y;
 };
 
 

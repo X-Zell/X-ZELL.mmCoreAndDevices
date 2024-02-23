@@ -655,7 +655,6 @@ int XZellZeissCamera::GetROI(unsigned& x, unsigned& y, unsigned& xSize, unsigned
 */
 int XZellZeissCamera::ClearROI()
 {
-    LogMessage("API METHOD ENTRY: ClearROI");
    ResizeImageBuffer();
    roiX_ = 0;
    roiY_ = 0;
@@ -688,105 +687,6 @@ bool XZellZeissCamera::IsMultiROISet()
 {
     LogMessage("API METHOD ENTRY: IsMultiROISet");
    return multiROIXs_.size() > 0;
-}
-
-/**
- * Queries for the current set number of ROIs. Must return zero if multiple
- * ROIs are not set (including if an ROI has been set via SetROI).
- * Optional method in the MM::Camera API; by default cameras do not support
- * multiple ROIs.
- */
-int XZellZeissCamera::GetMultiROICount(unsigned int& count)
-{
-    LogMessage("API METHOD ENTRY: GetMultiROICount");
-   count = (unsigned int) multiROIXs_.size();
-   return DEVICE_OK;
-}
-
-/**
- * Set multiple ROIs. Replaces any existing ROI settings including ROIs set
- * via SetROI.
- * Optional method in the MM::Camera API; by default cameras do not support
- * multiple ROIs.
- * @param xs Array of X indices of upper-left corner of the ROIs.
- * @param ys Array of Y indices of upper-left corner of the ROIs.
- * @param widths Widths of the ROIs, in pixels.
- * @param heights Heights of the ROIs, in pixels.
- * @param numROIs Length of the arrays.
- */
-int XZellZeissCamera::SetMultiROI(const unsigned int* xs, const unsigned int* ys,
-      const unsigned* widths, const unsigned int* heights,
-      unsigned numROIs)
-{
-    LogMessage("API METHOD ENTRY: SetMultiROI");
-   multiROIXs_.clear();
-   multiROIYs_.clear();
-   multiROIWidths_.clear();
-   multiROIHeights_.clear();
-   unsigned int minX = UINT_MAX;
-   unsigned int minY = UINT_MAX;
-   unsigned int maxX = 0;
-   unsigned int maxY = 0;
-   for (unsigned int i = 0; i < numROIs; ++i)
-   {
-      multiROIXs_.push_back(xs[i]);
-      multiROIYs_.push_back(ys[i]);
-      multiROIWidths_.push_back(widths[i]);
-      multiROIHeights_.push_back(heights[i]);
-      if (minX > xs[i])
-      {
-         minX = xs[i];
-      }
-      if (minY > ys[i])
-      {
-         minY = ys[i];
-      }
-      if (xs[i] + widths[i] > maxX)
-      {
-         maxX = xs[i] + widths[i];
-      }
-      if (ys[i] + heights[i] > maxY)
-      {
-         maxY = ys[i] + heights[i];
-      }
-   }
-   img_.Resize(maxX - minX, maxY - minY);
-   roiX_ = minX;
-   roiY_ = minY;
-   return DEVICE_OK;
-}
-
-/**
- * Queries for current multiple-ROI setting. May be called even if no ROIs of
- * any type have been set. Must return length of 0 in that case.
- * Optional method in the MM::Camera API; by default cameras do not support
- * multiple ROIs.
- * @param xs (Return value) X indices of upper-left corner of the ROIs.
- * @param ys (Return value) Y indices of upper-left corner of the ROIs.
- * @param widths (Return value) Widths of the ROIs, in pixels.
- * @param heights (Return value) Heights of the ROIs, in pixels.
- * @param numROIs Length of the input arrays. If there are fewer ROIs than
- *        this, then this value must be updated to reflect the new count.
- */
-int XZellZeissCamera::GetMultiROI(unsigned* xs, unsigned* ys, unsigned* widths,
-      unsigned* heights, unsigned* length)
-{
-    LogMessage("API METHOD ENTRY: GetMultiROI");
-   unsigned int roiCount = (unsigned int) multiROIXs_.size();
-   if (roiCount > *length)
-   {
-      // This should never happen.
-      return DEVICE_INTERNAL_INCONSISTENCY;
-   }
-   for (unsigned int i = 0; i < roiCount; ++i)
-   {
-      xs[i] = multiROIXs_[i];
-      ys[i] = multiROIYs_[i];
-      widths[i] = multiROIWidths_[i];
-      heights[i] = multiROIHeights_[i];
-   }
-   *length = roiCount;
-   return DEVICE_OK;
 }
 
 /**
@@ -854,86 +754,6 @@ int XZellZeissCamera::SetBinning(int binF)
 {
     LogMessage("API METHOD ENTRY: SetBinning");
    return SetProperty(MM::g_Keyword_Binning, CDeviceUtils::ConvertToString(binF));
-}
-
-int XZellZeissCamera::IsExposureSequenceable(bool& isSequenceable) const
-{
-    LogMessage("API METHOD ENTRY: IsExposureSequenceable");
-   isSequenceable = isSequenceable_;
-   return DEVICE_OK;
-}
-
-int XZellZeissCamera::GetExposureSequenceMaxLength(long& nrEvents) const
-{
-    LogMessage("API METHOD ENTRY: GetExposureSequenceMaxLength");
-   if (!isSequenceable_) {
-      return DEVICE_UNSUPPORTED_COMMAND;
-   }
-
-   nrEvents = sequenceMaxLength_;
-   return DEVICE_OK;
-}
-
-int XZellZeissCamera::StartExposureSequence()
-{
-    LogMessage("API METHOD ENTRY: StartExposureSequence");
-   if (!isSequenceable_) {
-      return DEVICE_UNSUPPORTED_COMMAND;
-   }
-
-   // may need thread lock
-   sequenceRunning_ = true;
-   return DEVICE_OK;
-}
-
-int XZellZeissCamera::StopExposureSequence()
-{
-    LogMessage("API METHOD ENTRY: StopExposureSequence");
-   if (!isSequenceable_) {
-      return DEVICE_UNSUPPORTED_COMMAND;
-   }
-
-   // may need thread lock
-   sequenceRunning_ = false;
-   sequenceIndex_ = 0;
-   return DEVICE_OK;
-}
-
-/**
- * Clears the list of exposures used in sequences
- */
-int XZellZeissCamera::ClearExposureSequence()
-{
-    LogMessage("API METHOD ENTRY: ClearExposureSequence");
-   if (!isSequenceable_) {
-      return DEVICE_UNSUPPORTED_COMMAND;
-   }
-
-   exposureSequence_.clear();
-   return DEVICE_OK;
-}
-
-/**
- * Adds an exposure to a list of exposures used in sequences
- */
-int XZellZeissCamera::AddToExposureSequence(double exposureTime_ms) 
-{
-    LogMessage("API METHOD ENTRY: AddToExposureSequence");
-   if (!isSequenceable_) {
-      return DEVICE_UNSUPPORTED_COMMAND;
-   }
-
-   exposureSequence_.push_back(exposureTime_ms);
-   return DEVICE_OK;
-}
-
-int XZellZeissCamera::SendExposureSequence() const {
-    LogMessage("API METHOD ENTRY: SendExposureSequence");
-   if (!isSequenceable_) {
-      return DEVICE_UNSUPPORTED_COMMAND;
-   }
-
-   return DEVICE_OK;
 }
 
 int XZellZeissCamera::SetAllowedBinning() 
