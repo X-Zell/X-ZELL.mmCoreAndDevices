@@ -1,20 +1,13 @@
 ///////////////////////////////////////////////////////////////////////////////
-// FILE:          DemoCamera.h
+// FILE:          XZellZeissCamera.h
 // PROJECT:       Micro-Manager
 // SUBSYSTEM:     DeviceAdapters
 //-----------------------------------------------------------------------------
-// DESCRIPTION:   The example implementation of the demo camera.
-//                Simulates generic digital camera and associated automated
-//                microscope devices and enables testing of the rest of the
-//                system without the need to connect to the actual hardware. 
+// DESCRIPTION:   The X-Zell implementation of the Zeiss Axio camera.
 //                
-// AUTHOR:        Nenad Amodaj, nenad@amodaj.com, 06/08/2005
-//                
-//                Karl Hoover (stuff such as programmable CCD size  & the various image processors)
-//                Arther Edelstein ( equipment error simulation)
+// AUTHOR:        Jeremy Uff, j.uff@influxury.net, 23/02/2024
 //
-// COPYRIGHT:     University of California, San Francisco, 2006-2015
-//                100X Imaging Inc, 2008
+// COPYRIGHT:     X-Zell Biotech Pte Ltd, Singapore
 //
 // LICENSE:       This file is distributed under the BSD license.
 //                License text is included with the source distribution.
@@ -325,67 +318,6 @@ class MySequenceThread : public MMDeviceThreadBase
 }; 
 
 //////////////////////////////////////////////////////////////////////////////
-// CDemoFilterWheel class
-// Simulation of the filter changer (state device)
-//////////////////////////////////////////////////////////////////////////////
-
-class CDemoFilterWheel : public CStateDeviceBase<CDemoFilterWheel>
-{
-public:
-   CDemoFilterWheel();
-   ~CDemoFilterWheel();
-  
-   // MMDevice API
-   // ------------
-   int Initialize();
-   int Shutdown();
-  
-   void GetName(char* pszName) const;
-   bool Busy();
-   unsigned long GetNumberOfPositions()const {return numPos_;}
-
-   // action interface
-   // ----------------
-   int OnState(MM::PropertyBase* pProp, MM::ActionType eAct);
-
-private:
-   long numPos_;
-   bool initialized_;
-   MM::MMTime changedTime_;
-   long position_;
-};
-
-//////////////////////////////////////////////////////////////////////////////
-// CDemoLightPath class
-// Simulation of the microscope light path switch (state device)
-//////////////////////////////////////////////////////////////////////////////
-class CDemoLightPath : public CStateDeviceBase<CDemoLightPath>
-{
-public:
-   CDemoLightPath();
-   ~CDemoLightPath();
-  
-   // MMDevice API
-   // ------------
-   int Initialize();
-   int Shutdown();
-  
-   void GetName(char* pszName) const;
-   bool Busy() {return busy_;}
-   unsigned long GetNumberOfPositions()const {return numPos_;}
-
-   // action interface
-   // ----------------
-   int OnState(MM::PropertyBase* pProp, MM::ActionType eAct);
-
-private:
-   long numPos_;
-   bool busy_;
-   bool initialized_;
-   long position_;
-};
-
-//////////////////////////////////////////////////////////////////////////////
 // CDemoObjectiveTurret class
 // Simulation of the objective changer (state device)
 //////////////////////////////////////////////////////////////////////////////
@@ -464,145 +396,6 @@ private:
 };
 
 //////////////////////////////////////////////////////////////////////////////
-// CDemoStage class
-// Simulation of the single axis stage
-//////////////////////////////////////////////////////////////////////////////
-
-class CDemoStage : public CStageBase<CDemoStage>
-{
-public:
-   CDemoStage();
-   ~CDemoStage();
-
-   bool Busy() {return busy_;}
-   void GetName(char* pszName) const;
-
-   int Initialize();
-   int Shutdown();
-     
-   // Stage API
-   int SetPositionUm(double pos);
-   int GetPositionUm(double& pos) {pos = pos_um_; LogMessage("Reporting position", true); return DEVICE_OK;}
-   double GetStepSize() {return stepSize_um_;}
-   int SetPositionSteps(long steps) 
-   {
-      pos_um_ = steps * stepSize_um_; 
-      return  OnStagePositionChanged(pos_um_);
-   }
-   int GetPositionSteps(long& steps)
-   {
-      steps = (long)(pos_um_ / stepSize_um_);
-      return DEVICE_OK;
-   }
-   int SetOrigin() { return DEVICE_OK; }
-   int GetLimits(double& lower, double& upper)
-   {
-      lower = lowerLimit_;
-      upper = upperLimit_;
-      return DEVICE_OK;
-   }
-   int Move(double /*v*/) {return DEVICE_OK;}
-
-   bool IsContinuousFocusDrive() const {return false;}
-
-   // action interface
-   // ----------------
-   int OnPosition(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnSequence(MM::PropertyBase* pProp, MM::ActionType eAct);
-
-   // Sequence functions
-   int IsStageSequenceable(bool& isSequenceable) const;
-   int GetStageSequenceMaxLength(long& nrEvents) const;
-   int StartStageSequence();
-   int StopStageSequence();
-   int ClearStageSequence();
-   int AddToStageSequence(double /* position */);
-   int SendStageSequence();
-
-private:
-   void SetIntensityFactor(double pos);
-   double stepSize_um_;
-   double pos_um_;
-   bool busy_;
-   bool initialized_;
-   double lowerLimit_;
-   double upperLimit_;
-   bool sequenceable_;
-};
-
-//////////////////////////////////////////////////////////////////////////////
-// CDemoStage class
-// Simulation of the single axis stage
-//////////////////////////////////////////////////////////////////////////////
-
-class CDemoXYStage : public CXYStageBase<CDemoXYStage>
-{
-public:
-   CDemoXYStage();
-   ~CDemoXYStage();
-
-   bool Busy();
-   void GetName(char* pszName) const;
-
-   int Initialize();
-   int Shutdown();
-     
-   // XYStage API
-   /* Note that only the Set/Get PositionStep functions are implemented in the adapter
-    * It is best not to override the Set/Get PositionUm functions in DeviceBase.h, since
-    * those implement corrections based on whether or not X and Y directionality should be 
-    * mirrored and based on a user defined origin
-    */
-
-   // This must be correct or the conversions between steps and Um will go wrong
-   virtual double GetStepSize() {return stepSize_um_;}
-   virtual int SetPositionSteps(long x, long y);
-   virtual int GetPositionSteps(long& x, long& y);
-   virtual int SetRelativePositionSteps(long x, long y);
-   virtual int Home() { return DEVICE_OK; }
-   virtual int Stop() { return DEVICE_OK; }
-
-   /* This sets the 0,0 position of the adapter to the current position.  
-    * If possible, the stage controller itself should also be set to 0,0
-    * Note that this differs form the function SetAdapterOrigin(), which 
-    * sets the coordinate system used by the adapter
-    * to values different from the system used by the stage controller
-    */
-   virtual int SetOrigin() { return DEVICE_OK; }
-
-   virtual int GetLimitsUm(double& xMin, double& xMax, double& yMin, double& yMax)
-   {
-      xMin = lowerLimit_; xMax = upperLimit_;
-      yMin = lowerLimit_; yMax = upperLimit_;
-      return DEVICE_OK;
-   }
-
-   virtual int GetStepLimits(long& /*xMin*/, long& /*xMax*/, long& /*yMin*/, long& /*yMax*/)
-   { return DEVICE_UNSUPPORTED_COMMAND; }
-   double GetStepSizeXUm() { return stepSize_um_; }
-   double GetStepSizeYUm() { return stepSize_um_; }
-   int Move(double /*vx*/, double /*vy*/) {return DEVICE_OK;}
-
-   int IsXYStageSequenceable(bool& isSequenceable) const {isSequenceable = false; return DEVICE_OK;}
-
-
-   // action interface
-   // ----------------
-   int OnPosition(MM::PropertyBase* pProp, MM::ActionType eAct);
-
-private:
-   double stepSize_um_;
-   double posX_um_;
-   double posY_um_;
-   bool busy_;
-   MM::TimeoutMs* timeOutTimer_;
-   double velocity_;
-   bool initialized_;
-   double lowerLimit_;
-   double upperLimit_;
-};
-
-//////////////////////////////////////////////////////////////////////////////
 // DemoShutter class
 // Simulation of shutter device
 //////////////////////////////////////////////////////////////////////////////
@@ -647,76 +440,6 @@ private:
    bool initialized_;
    MM::MMTime changedTime_;
 };
-
-//////////////////////////////////////////////////////////////////////////////
-// DemoShutter class
-// Simulation of shutter device
-//////////////////////////////////////////////////////////////////////////////
-class DemoDA : public CSignalIOBase<DemoDA>
-{
-public:
-   DemoDA (uint8_t n);
-   ~DemoDA ();
-
-   int Shutdown() {return DEVICE_OK;}
-   void GetName(char* name) const;
-   int SetGateOpen(bool open); 
-   int GetGateOpen(bool& open);
-   int SetSignal(double volts);
-   int GetSignal(double& volts);
-   int GetLimits(double& minVolts, double& maxVolts)
-   {
-      minVolts=0.0; maxVolts= 10.0;
-      return DEVICE_OK;
-   }
-   bool Busy() {return false;}
-   int Initialize();
-
-   // Sequence functions
-   int IsDASequenceable(bool& isSequenceable) const
-   {
-      isSequenceable = true;
-      return DEVICE_OK;
-   }
-   int GetDASequenceMaxLength(long& nrEvents) const 
-   {
-      nrEvents = 256;
-      return DEVICE_OK;
-   }
-   int StartDASequence()
-   {
-      (const_cast<DemoDA *>(this))->SetSequenceStateOn();
-      return DEVICE_OK;
-   }
-   int StopDASequence()
-   {
-      (const_cast<DemoDA *>(this))->SetSequenceStateOff();
-      return DEVICE_OK;
-   }
-   int SendDASequence();
-   int ClearDASequence();
-   int AddToDASequence(double voltage);
-
-   int OnTrigger(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnVoltage(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnRealVoltage(MM::PropertyBase* pProp, MM::ActionType eAct);
-
-private:
-   uint8_t n_;
-   double volt_;
-   double gatedVolts_;
-   bool open_;
-   bool sequenceRunning_;
-   unsigned long sequenceIndex_;
-   std::vector<double> sentSequence_;
-   std::vector<double> nascentSequence_;
-
-   void SetSequenceStateOn() { sequenceRunning_ = true; }
-   void SetSequenceStateOff() { sequenceRunning_ = false; sequenceIndex_ = 0; }
-
-   void SetSentSequence();
-};
-
 
 //////////////////////////////////////////////////////////////////////////////
 // DemoMagnifier class
@@ -1134,70 +857,6 @@ struct PointD
       PointD(double lx, double ly) {x = lx; y = ly;};
    double x;
    double y;
-};
-//////////////////////////////////////////////////////////////////////////////
-// DemoGalvo class
-// Simulation of Galvo device
-//////////////////////////////////////////////////////////////////////////////
-class DemoGalvo : public CGalvoBase<DemoGalvo>, ImgManipulator
-{
-public:
-   DemoGalvo();
-   ~DemoGalvo();
-      
-   // MMDevice API
-   bool Busy() {return busy_;}
-   void GetName(char* pszName) const;
-
-   int Initialize();
-   int Shutdown(){initialized_ = false; return DEVICE_OK;}
-
-   // Galvo API
-   int PointAndFire(double x, double y, double pulseTime_us); 
-   int SetSpotInterval(double pulseTime_us);
-   int SetPosition(double x, double y);
-   int GetPosition(double& x, double& y);
-   int SetIlluminationState(bool on);
-   int AddPolygonVertex(int polygonIndex, double x, double y);
-   int DeletePolygons();
-   int LoadPolygons();
-   int SetPolygonRepetitions(int repetitions);
-   int RunPolygons();
-   int RunSequence();
-   int StopSequence();
-   int GetChannel(char* channelName);                         
-
-   double GetXRange();                         
-   double GetYRange(); 
-
-   int ChangePixels(ImgBuffer& img);
-   static bool PointInTriangle(Point p, Point p0, Point p1, Point p2);
-
-private:
-
-   XZellZeissCamera* demoCamera_;
-   unsigned short gaussianMask_[10][10];
-
-   double GaussValue(double amplitude, double sigmaX, double sigmaY, int muX, int muY, int x, int y);
-   Point GalvoToCameraPoint(PointD GalvoPoint, ImgBuffer& img);
-   void GetBoundingBox(std::vector<Point>& vertex, std::vector<Point>& bBox);
-   bool InBoundingBox(std::vector<Point> boundingBox, Point testPoint);
-
-   std::map<int, std::vector<PointD> > vertices_;
-   MM::MMTime pfExpirationTime_;
-   bool initialized_;
-   bool busy_;
-   bool illuminationState_;
-   bool pointAndFire_;
-   bool runROIS_;
-   double xRange_;
-   double yRange_;
-   double currentX_;
-   double currentY_;
-   int offsetX_;
-   double vMaxX_;
-   int offsetY_;
-   double vMaxY_;
 };
 
 
