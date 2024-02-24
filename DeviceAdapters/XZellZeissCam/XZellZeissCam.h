@@ -139,12 +139,7 @@ public:
    int InsertImage();
    int RunSequenceOnThread();
    bool IsCapturing();
-   void OnThreadExiting() throw(); 
-   double GetNominalPixelSizeUm() const {
-       LogMessage("API METHOD ENTRY: GetPixelSizeUm");
-       return nominalPixelSizeUm_;
-   }
-   double GetPixelSizeUm() const {return nominalPixelSizeUm_ * GetBinning();}
+   void OnThreadExiting() throw();
    int GetBinning() const;
    int SetBinning(int bS);
 
