@@ -132,7 +132,6 @@ public:
    int SetROI(unsigned x, unsigned y, unsigned xSize, unsigned ySize); 
    int GetROI(unsigned& x, unsigned& y, unsigned& xSize, unsigned& ySize); 
    int ClearROI();
-   bool SupportsMultiROI();
    bool IsMultiROISet();
    int StartSequenceAcquisition(double interval);
    int StartSequenceAcquisition(long numImages, double interval_ms, bool stopOnOverflow);
@@ -179,7 +178,6 @@ public:
    int OnShouldRotateImages(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnShouldDisplayImageNumber(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnStripeWidth(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnSupportsMultiROI(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnMultiROIFillValue(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnCCDTemp(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnIsSequenceable(MM::PropertyBase* pProp, MM::ActionType eAct);
@@ -245,7 +243,6 @@ private:
    bool shouldRotateImages_;
    bool shouldDisplayImageNumber_;
    double stripeWidth_;
-   bool supportsMultiROI_;
    int multiROIFillValue_;
    std::vector<unsigned> multiROIXs_;
    std::vector<unsigned> multiROIYs_;

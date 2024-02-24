@@ -128,7 +128,6 @@ XZellZeissCamera::XZellZeissCamera() :
    shouldRotateImages_(false),
    shouldDisplayImageNumber_(false),
    stripeWidth_(1.0),
-   supportsMultiROI_(false),
    multiROIFillValue_(0),
    nComponents_(1),
    mode_(MODE_ARTIFICIAL_WAVES),
@@ -379,11 +378,6 @@ int XZellZeissCamera::Initialize()
    pAct = new CPropertyAction(this, &XZellZeissCamera::OnStripeWidth);
    CreateFloatProperty("StripeWidth", 0, false, pAct);
    SetPropertyLimits("StripeWidth", 0, 10);
-
-   pAct = new CPropertyAction(this, &XZellZeissCamera::OnSupportsMultiROI);
-   CreateIntegerProperty("AllowMultiROI", 0, false, pAct);
-   AddAllowedValue("AllowMultiROI", "0");
-   AddAllowedValue("AllowMultiROI", "1");
 
    pAct = new CPropertyAction(this, &XZellZeissCamera::OnMultiROIFillValue);
    CreateIntegerProperty("MultiROIFillValue", 0, false, pAct);
@@ -663,17 +657,6 @@ int XZellZeissCamera::ClearROI()
    multiROIWidths_.clear();
    multiROIHeights_.clear();
    return DEVICE_OK;
-}
-
-/**
- * Queries if the camera supports multiple simultaneous ROIs.
- * Optional method in the MM::Camera API; by default cameras do not support
- * multiple ROIs.
- */
-bool XZellZeissCamera::SupportsMultiROI()
-{
-    LogMessage("API METHOD ENTRY: SupportsMultiROI");
-   return supportsMultiROI_;
 }
 
 /**
@@ -1469,22 +1452,6 @@ int XZellZeissCamera::OnStripeWidth(MM::PropertyBase* pProp, MM::ActionType eAct
    else if (eAct == MM::BeforeGet)
    {
       pProp->Set(stripeWidth_);
-   }
-
-   return DEVICE_OK;
-}
-
-int XZellZeissCamera::OnSupportsMultiROI(MM::PropertyBase* pProp, MM::ActionType eAct)
-{
-   if (eAct == MM::AfterSet)
-   {
-      long tvalue = 0;
-      pProp->Get(tvalue);
-      supportsMultiROI_ = (tvalue != 0);
-   }
-   else if (eAct == MM::BeforeGet)
-   {
-      pProp->Set((long) supportsMultiROI_);
    }
 
    return DEVICE_OK;
