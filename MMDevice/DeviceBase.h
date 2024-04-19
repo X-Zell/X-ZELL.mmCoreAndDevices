@@ -1327,7 +1327,11 @@ public:
       delete thd_;
    }
 
-   virtual bool Busy() {return busy_;}
+   virtual bool Busy()
+   {
+       LogMessage("API BASE METHOD ENTRY: Busy");
+	   return busy_;
+   }
 
    /**
    * Continuous sequence acquisition.
@@ -1335,7 +1339,6 @@ public:
    */
    virtual int StartSequenceAcquisition(double interval)
    {
-       LogMessage("API METHOD ENTRY: StartSequenceAcquisition(interval)");
       return StartSequenceAcquisition(LONG_MAX, interval, false);
    }
 
@@ -1344,7 +1347,6 @@ public:
    */
    virtual int StopSequenceAcquisition()
    {
-       LogMessage("API METHOD ENTRY: StopSequenceAcquisition");
       if (!thd_->IsStopped()) {
          thd_->Stop();
          thd_->wait();
@@ -1358,23 +1360,25 @@ public:
    */
    virtual double GetPixelSizeUm() const
    {
-       LogMessage("API METHOD ENTRY: GetPixelSizeUm");
        return GetBinning();
    }
 
    virtual unsigned GetNumberOfComponents() const
    {
-       LogMessage("API METHOD ENTRY: GetNumberOfComponents");
+       LogMessage("API BASE METHOD ENTRY: GetNumberOfChannels");
       return 1;
    }
 
    virtual int GetComponentName(unsigned channel, char* name)
    {
-       LogMessage("API METHOD ENTRY: GetComponentName");
+       LogMessage("API BASE METHOD ENTRY: GetComponentName");
       if (channel > 0)
          return DEVICE_NONEXISTENT_CHANNEL;
 
       CDeviceUtils::CopyLimitedString(name, "Grayscale");
+       std::ostringstream oss;
+       oss << "DEV: Component Name: " << name << "\n";
+       LogMessage(oss.str().c_str());
       return DEVICE_OK;
    }
 
@@ -1384,7 +1388,7 @@ public:
     */
    virtual unsigned GetNumberOfChannels() const
    {
-       LogMessage("API METHOD ENTRY: GetNumberOfChannels");
+       LogMessage("API BASE METHOD ENTRY: GetNumberOfChannels");
       return 1;
    }
 
@@ -1394,8 +1398,11 @@ public:
     */
    virtual int GetChannelName(unsigned /* channel */, char* name)
    {
-       LogMessage("API METHOD ENTRY: GetChannelName");
+       LogMessage("API BASE METHOD ENTRY: GetChannelName");
       CDeviceUtils::CopyLimitedString(name, "");
+      std::ostringstream oss;
+      oss << "DEV: Channel Name: " << name << "\n";
+      LogMessage(oss.str().c_str());
       return DEVICE_OK;
    }
 
@@ -1412,7 +1419,7 @@ public:
 
    virtual const unsigned int* GetImageBufferAsRGB32()
    {
-       LogMessage("API METHOD ENTRY: GetImageBufferAsRGB32");
+       LogMessage("API BASE METHOD ENTRY: GetImageBufferAsRGB32");
       return 0;
    }
 
@@ -1421,7 +1428,7 @@ public:
     */
    virtual void GetTags(char* serializedMetadata)
    {
-       LogMessage("API METHOD ENTRY: GetTags");
+       LogMessage("API BASE METHOD ENTRY: GetTags");
       std::string data = metadata_.Serialize();
       data.copy(serializedMetadata, data.size(), 0);
    }
@@ -1429,7 +1436,7 @@ public:
    // temporary debug methods
    virtual int PrepareSequenceAcqusition()
    {
-       LogMessage("API METHOD ENTRY: PrepareSequenceAcqusition");
+       LogMessage("API BASE METHOD ENTRY: PrepareSequenceAcqusition");
        return DEVICE_OK;
    }
 
@@ -1438,7 +1445,7 @@ public:
    */
    virtual int StartSequenceAcquisition(long numImages, double interval_ms, bool stopOnOverflow)
    {
-       LogMessage("API METHOD ENTRY: StartSequenceAcquisition(numImages, interval_ms, stopOnOverflow)");
+       LogMessage("API BASE METHOD ENTRY: StartSequenceAcquisition(numImages, interval_ms, stopOnOverflow)");
       if (IsCapturing())
          return DEVICE_CAMERA_BUSY_ACQUIRING;
 
@@ -1482,20 +1489,19 @@ public:
 
    virtual bool IsCapturing()
    {
-       LogMessage("API METHOD ENTRY: IsCapturing");
        return !thd_->IsStopped();
    }
 
    virtual void AddTag(const char* key, const char* deviceLabel, const char* value)
    {
-       LogMessage("API METHOD ENTRY: AddTag");
+       LogMessage("API BASE METHOD ENTRY: AddTag");
       metadata_.PutTag(key, deviceLabel, value);
    }
 
 
    virtual void RemoveTag(const char* key)
    {
-       LogMessage("API METHOD ENTRY: RemoveTag");
+       LogMessage("API BASE METHOD ENTRY: RemoveTag");
       metadata_.RemoveTag(key);
    }
 

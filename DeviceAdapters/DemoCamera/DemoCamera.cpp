@@ -641,7 +641,7 @@ int CDemoCamera::SnapImage()
 */
 const unsigned char* CDemoCamera::GetImageBuffer()
 {
-    LogMessage("API METHOD ENTRY: GetImageBuffer");
+	LogMessage("API METHOD ENTRY: GetImageBuffer");
    MMThreadGuard g(imgPixelsLock_);
    MM::MMTime readoutTime(readoutUs_);
    while (readoutTime > (GetCurrentMMTime() - readoutStartTime_)) {}		

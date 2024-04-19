@@ -160,11 +160,11 @@ public:
    int RunSequenceOnThread();
    bool IsCapturing();
    void OnThreadExiting() throw(); 
-   double GetNominalPixelSizeUm() const {
+   double GetNominalPixelSizeUm() const { return nominalPixelSizeUm_; }
+   double GetPixelSizeUm() const {
        LogMessage("API METHOD ENTRY: GetPixelSizeUm");
-       return nominalPixelSizeUm_;
+   		return nominalPixelSizeUm_ * GetBinning();
    }
-   double GetPixelSizeUm() const {return nominalPixelSizeUm_ * GetBinning();}
    int GetBinning() const;
    int SetBinning(int bS);
 
@@ -176,7 +176,11 @@ public:
    int AddToExposureSequence(double exposureTime_ms);
    int SendExposureSequence() const;
 
-   unsigned  GetNumberOfComponents() const { return nComponents_;};
+   unsigned  GetNumberOfComponents() const
+   {
+       LogMessage("API METHOD ENTRY: GetNumberOfComponents");
+	   return nComponents_;
+   };
 
    // action interface
    // ----------------
