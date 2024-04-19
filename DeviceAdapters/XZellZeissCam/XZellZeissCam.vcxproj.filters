@@ -18,9 +18,30 @@
     <ClCompile Include="XZellZeissCam.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="XZellZeissCam.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mcam_zei.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mcam_zei_ex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\AxiocamSDK\api\include\mcam_zei.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\AxiocamSDK\api\include\mcam_zei_ex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

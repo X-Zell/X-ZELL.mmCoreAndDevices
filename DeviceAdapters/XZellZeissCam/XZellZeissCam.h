@@ -258,6 +258,10 @@ private:
    double pcf_;
    double photonFlux_;
    double readNoise_;
+
+   // START OF ZEISS SPECIFIC DEV CODE
+   SMCAMINFO cameraInfos;
+   // END OF ZEISS SPECIFIC DEV CODE
 };
 
 class MySequenceThread : public MMDeviceThreadBase
