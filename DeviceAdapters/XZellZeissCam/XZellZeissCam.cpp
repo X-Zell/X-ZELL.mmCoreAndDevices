@@ -173,7 +173,7 @@ XZellZeissCamera::~XZellZeissCamera()
 */
 void XZellZeissCamera::GetName(char* name) const
 {
-    LogMessage("API METHOD ENTRY: GetName");
+    LogMessage("ZEISS API METHOD ENTRY: GetName");
    // Return the name used to referr to this device adapte
    CDeviceUtils::CopyLimitedString(name, g_CameraDeviceName);
 }
@@ -189,7 +189,7 @@ void XZellZeissCamera::GetName(char* name) const
 */
 int XZellZeissCamera::Initialize()
 {
-    LogMessage("API METHOD ENTRY: Initialize");
+    LogMessage("ZEISS API METHOD ENTRY: Initialize");
    if (initialized_)
       return DEVICE_OK;
 
@@ -467,7 +467,7 @@ int XZellZeissCamera::Initialize()
 */
 int XZellZeissCamera::Shutdown()
 {
-    LogMessage("API METHOD ENTRY: Shutdown");
+    LogMessage("ZEISS API METHOD ENTRY: Shutdown");
    initialized_ = false;
    return DEVICE_OK;
 }
@@ -480,7 +480,7 @@ int XZellZeissCamera::Shutdown()
 */
 int XZellZeissCamera::SnapImage()
 {
-    LogMessage("API METHOD ENTRY: SnapImage");
+    LogMessage("ZEISS API METHOD ENTRY: SnapImage");
 	static int callCounter = 0;
 	++callCounter;
 
@@ -529,7 +529,7 @@ int XZellZeissCamera::SnapImage()
 */
 const unsigned char* XZellZeissCamera::GetImageBuffer()
 {
-    LogMessage("API METHOD ENTRY: GetImageBuffer");
+    LogMessage("ZEISS API METHOD ENTRY: GetImageBuffer");
    MMThreadGuard g(imgPixelsLock_);
    MM::MMTime readoutTime(readoutUs_);
    while (readoutTime > (GetCurrentMMTime() - readoutStartTime_)) {}		
@@ -543,7 +543,7 @@ const unsigned char* XZellZeissCamera::GetImageBuffer()
 */
 unsigned XZellZeissCamera::GetImageWidth() const
 {
-    LogMessage("API METHOD ENTRY: GetImageWidth");
+    LogMessage("ZEISS API METHOD ENTRY: GetImageWidth");
    return img_.Width();
 }
 
@@ -553,7 +553,7 @@ unsigned XZellZeissCamera::GetImageWidth() const
 */
 unsigned XZellZeissCamera::GetImageHeight() const
 {
-    LogMessage("API METHOD ENTRY: GetImageHeight");
+    LogMessage("ZEISS API METHOD ENTRY: GetImageHeight");
    return img_.Height();
 }
 
@@ -563,7 +563,7 @@ unsigned XZellZeissCamera::GetImageHeight() const
 */
 unsigned XZellZeissCamera::GetImageBytesPerPixel() const
 {
-    LogMessage("API METHOD ENTRY: GetImageBytesPerPixel");
+    LogMessage("ZEISS API METHOD ENTRY: GetImageBytesPerPixel");
    return img_.Depth();
 } 
 
@@ -575,7 +575,7 @@ unsigned XZellZeissCamera::GetImageBytesPerPixel() const
 */
 unsigned XZellZeissCamera::GetBitDepth() const
 {
-    LogMessage("API METHOD ENTRY: GetBitDepth");
+    LogMessage("ZEISS API METHOD ENTRY: GetBitDepth");
    return bitDepth_;
 }
 
@@ -585,7 +585,7 @@ unsigned XZellZeissCamera::GetBitDepth() const
 */
 long XZellZeissCamera::GetImageBufferSize() const
 {
-    LogMessage("API METHOD ENTRY: GetImageBufferSize");
+    LogMessage("ZEISS API METHOD ENTRY: GetImageBufferSize");
    return img_.Width() * img_.Height() * GetImageBytesPerPixel();
 }
 
@@ -607,7 +607,7 @@ long XZellZeissCamera::GetImageBufferSize() const
 */
 int XZellZeissCamera::SetROI(unsigned x, unsigned y, unsigned xSize, unsigned ySize)
 {
-    LogMessage("API METHOD ENTRY: SetROI");
+    LogMessage("ZEISS API METHOD ENTRY: SetROI");
    multiROIXs_.clear();
    multiROIYs_.clear();
    multiROIWidths_.clear();
@@ -636,7 +636,7 @@ int XZellZeissCamera::SetROI(unsigned x, unsigned y, unsigned xSize, unsigned yS
 */
 int XZellZeissCamera::GetROI(unsigned& x, unsigned& y, unsigned& xSize, unsigned& ySize)
 {
-    LogMessage("API METHOD ENTRY: GetROI");
+    LogMessage("ZEISS API METHOD ENTRY: GetROI");
    x = roiX_;
    y = roiY_;
 
@@ -671,7 +671,7 @@ int XZellZeissCamera::ClearROI()
  */
 bool XZellZeissCamera::IsMultiROISet()
 {
-    LogMessage("API METHOD ENTRY: IsMultiROISet");
+    LogMessage("ZEISS API METHOD ENTRY: IsMultiROISet");
    return multiROIXs_.size() > 0;
 }
 
@@ -681,7 +681,7 @@ bool XZellZeissCamera::IsMultiROISet()
 */
 double XZellZeissCamera::GetExposure() const
 {
-    LogMessage("API METHOD ENTRY: GetExposure");
+    LogMessage("ZEISS API METHOD ENTRY: GetExposure");
    char buf[MM::MaxStrLength];
    int ret = GetProperty(MM::g_Keyword_Exposure, buf);
    if (ret != DEVICE_OK)
@@ -713,7 +713,7 @@ double XZellZeissCamera::GetSequenceExposure()
 */
 void XZellZeissCamera::SetExposure(double exp)
 {
-    LogMessage("API METHOD ENTRY: SetExposure");
+    LogMessage("ZEISS API METHOD ENTRY: SetExposure");
    SetProperty(MM::g_Keyword_Exposure, CDeviceUtils::ConvertToString(exp));
    GetCoreCallback()->OnExposureChanged(this, exp);;
 }
@@ -724,7 +724,7 @@ void XZellZeissCamera::SetExposure(double exp)
 */
 int XZellZeissCamera::GetBinning() const
 {
-    LogMessage("API METHOD ENTRY: GetBinning");
+    LogMessage("ZEISS API METHOD ENTRY: GetBinning");
    char buf[MM::MaxStrLength];
    int ret = GetProperty(MM::g_Keyword_Binning, buf);
    if (ret != DEVICE_OK)
@@ -738,7 +738,7 @@ int XZellZeissCamera::GetBinning() const
 */
 int XZellZeissCamera::SetBinning(int binF)
 {
-    LogMessage("API METHOD ENTRY: SetBinning");
+    LogMessage("ZEISS API METHOD ENTRY: SetBinning");
    return SetProperty(MM::g_Keyword_Binning, CDeviceUtils::ConvertToString(binF));
 }
 
@@ -771,7 +771,7 @@ int XZellZeissCamera::SetAllowedBinning()
  */
 int XZellZeissCamera::StartSequenceAcquisition(double interval)
 {
-    LogMessage("API METHOD ENTRY: StartSequenceAcquisition(interval)");
+    LogMessage("ZEISS API METHOD ENTRY: StartSequenceAcquisition(interval)");
    return StartSequenceAcquisition(LONG_MAX, interval, false);            
 }
 
@@ -780,7 +780,7 @@ int XZellZeissCamera::StartSequenceAcquisition(double interval)
 */                                                                        
 int XZellZeissCamera::StopSequenceAcquisition()                                     
 {
-    LogMessage("API METHOD ENTRY: StopSequenceAcquisition");
+    LogMessage("ZEISS API METHOD ENTRY: StopSequenceAcquisition");
    if (!thd_->IsStopped()) {
       thd_->Stop();                                                       
       thd_->wait();                                                       
@@ -796,7 +796,7 @@ int XZellZeissCamera::StopSequenceAcquisition()
 */
 int XZellZeissCamera::StartSequenceAcquisition(long numImages, double interval_ms, bool stopOnOverflow)
 {
-    LogMessage("API METHOD ENTRY: StartSequenceAcquisition(numImages, interval_ms, stopOnOverflow)");
+    LogMessage("ZEISS API METHOD ENTRY: StartSequenceAcquisition(numImages, interval_ms, stopOnOverflow)");
    if (IsCapturing())
       return DEVICE_CAMERA_BUSY_ACQUIRING;
 
@@ -896,7 +896,7 @@ int XZellZeissCamera::RunSequenceOnThread()
 };
 
 bool XZellZeissCamera::IsCapturing() {
-    LogMessage("API METHOD ENTRY: IsCapturing");
+    LogMessage("ZEISS API METHOD ENTRY: IsCapturing");
    return !thd_->IsStopped();
 }
 
