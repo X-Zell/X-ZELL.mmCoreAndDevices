@@ -549,23 +549,49 @@ int XZellZeissCamera::SnapImage()
 
        //printf("Image Count = %d, ", imageCount);
        std::ostringstream oss3;
-       oss3 << "Image Count = " << imageCount << "\n";
+       oss3 << "DEV: Image Count = " << imageCount << "\n";
        LogMessage(oss3.str().c_str());
 
        if (cameraInfos.Type == mcamRGB)
        {
            //printf("R %d - G %d - B %d \n", imageCount, pixelValue1, pixelValue2, pixelValue3);
            std::ostringstream oss4;
-           oss4 << "R " << pixelValue1 << "G " << pixelValue2 << "B " << pixelValue3 << "\n";
+           oss4 << "DEV: R " << pixelValue1 << "G " << pixelValue2 << "B " << pixelValue3 << "\n";
            LogMessage(oss4.str().c_str());
        }
        else
        {
            //printf("pixels data = %d - %d - %d \n", imageCount, pixelValue1, pixelValue2, pixelValue3);
            std::ostringstream oss4;
-           oss4 << "pixels data = " << pixelValue1 << " - " << pixelValue2 << " - " << pixelValue3 << "\n";
+           oss4 << "DEV: pixels data = " << pixelValue1 << " - " << pixelValue2 << " - " << pixelValue3 << "\n";
            LogMessage(oss4.str().c_str());
        }
+
+       int headerSize = imageHeader->headerSize;
+       std::ostringstream oss5;
+       oss5 << "DEV: Header Size = " << headerSize << "\n";
+       LogMessage(oss5.str().c_str());
+
+       int pixelFormat = imageHeader->pixelFormat;
+       std::ostringstream oss6;
+       oss6 << "DEV: Pixel Format = " << pixelFormat << "\n";
+       LogMessage(oss6.str().c_str());
+
+       int bitsPerPixel = imageHeader->bitsPerPixel;
+       std::ostringstream oss7;
+       oss7 << "DEV: Bits per Pixel = " << bitsPerPixel << "\n";
+       LogMessage(oss7.str().c_str());
+
+       int bytesPerPixel = imageHeader->bytesPerPixel;
+       unsigned int numerator = bytesPerPixel >> 16;  // Shift right by 16 bits to get the upper 16 bits (numerator)
+       unsigned int denominator = bytesPerPixel & 0xFFFF;  // Use bitwise AND to mask the lower 16 bits
+
+       std::ostringstream oss8;
+       oss8 << "DEV: Numerator of Bytes per Pixel = " << numerator << "\n";
+       LogMessage(oss8.str().c_str());
+       std::ostringstream oss9;
+       oss9 << "DEV: Denominator of Bytes per Pixe = " << denominator << "\n";
+       LogMessage(oss9.str().c_str());
    }
    else
    {
