@@ -119,8 +119,8 @@ XZellZeissCamera::XZellZeissCamera() :
    sequenceRunning_(false),
    sequenceIndex_(0),
 	binSize_(1),
-	cameraCCDXSize_(512),
-	cameraCCDYSize_(512),
+	cameraCCDXSize_(2464),
+	cameraCCDYSize_(2056),
    ccdT_ (0.0),
    triggerDevice_(""),
    stopOnOverflow_(false),
@@ -199,17 +199,18 @@ int XZellZeissCamera::Initialize()
    //unsigned short* ImageBufferWithHeader = NULL;
    //long imageSize = 0;
 
-   std::ostringstream oss;
-   oss << "DEV: Number of Cameras found: " << numCam << "\n";
-   LogMessage(oss.str().c_str());
+   std::ostringstream ossA;
+   ossA << "DEV: Number of Cameras found: " << numCam << "\n";
+   LogMessage(ossA.str().c_str());
 
     if (numCam > 0)
     {
         McammInit(0);
         McammInfo(0, &cameraInfos);
 
-        oss << "AxioCam " << cameraInfos.Features << " #" << cameraInfos.SerienNummer;
-        LogMessage(oss.str().c_str());
+        std::ostringstream ossB;
+        ossB << "AxioCam " << cameraInfos.Features << " #" << cameraInfos.SerienNummer;
+        LogMessage(ossB.str().c_str());
 	    
     }
    // END OF ZEISS SPECIFIC DEV CODE
@@ -590,8 +591,21 @@ int XZellZeissCamera::SnapImage()
        oss8 << "DEV: Numerator of Bytes per Pixel = " << numerator << "\n";
        LogMessage(oss8.str().c_str());
        std::ostringstream oss9;
-       oss9 << "DEV: Denominator of Bytes per Pixe = " << denominator << "\n";
+       oss9 << "DEV: Denominator of Bytes per Pixel = " << denominator << "\n";
        LogMessage(oss9.str().c_str());
+
+       std::ostringstream oss10;
+       oss10 << "DEV: img_.Width() = " << img_.Width() << "\n";
+       LogMessage(oss10.str().c_str());
+       std::ostringstream oss11;
+       oss11 << "DEV: img_.Height() = " << img_.Height() << "\n";
+       LogMessage(oss11.str().c_str());
+       std::ostringstream oss12;
+       oss12 << "DEV: img_.Depth() = " << img_.Depth() << "\n";
+       LogMessage(oss12.str().c_str());
+       
+       memcpy(img_.GetPixelsRW(), ImageBufferWithHeader, static_cast<size_t>(img_.Width()) * img_.Height() * img_.Depth());
+		
    }
    else
    {
@@ -607,10 +621,10 @@ int XZellZeissCamera::SnapImage()
    }
 	// END OF ZEISS SPECIFIC DEV CODE
 
-   if (!fastImage_)
-   {
-      GenerateSyntheticImage(img_, exp);
-   }
+   //if (!fastImage_)
+   //{
+   //   GenerateSyntheticImage(img_, exp);
+   //}
 
    MM::MMTime s0(0,0);
    if( s0 < startTime )
@@ -1817,6 +1831,15 @@ void XZellZeissCamera::GenerateEmptyImage(ImgBuffer& img)
    if (img.Height() == 0 || img.Width() == 0 || img.Depth() == 0)
       return;
    unsigned char* pBuf = const_cast<unsigned char*>(img.GetPixels());
+   std::ostringstream oss10;
+   oss10 << "DEV: GenerateEmptyImage img_.Width() = " << img_.Width() << "\n";
+   LogMessage(oss10.str().c_str());
+   std::ostringstream oss11;
+   oss11 << "DEV: GenerateEmptyImage img_.Height() = " << img_.Height() << "\n";
+   LogMessage(oss11.str().c_str());
+   std::ostringstream oss12;
+   oss12 << "DEV: GenerateEmptyImage img_.Depth() = " << img_.Depth() << "\n";
+   LogMessage(oss12.str().c_str());
    memset(pBuf, 0, img.Height()*img.Width()*img.Depth());
 }
 
