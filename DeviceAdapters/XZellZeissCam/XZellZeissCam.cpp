@@ -37,7 +37,7 @@ double g_IntensityFactor_ = 1.0;
 
 // External names used used by the rest of the system
 // to load particular device from the "XZellZeissCam.dll" library
-const char* g_CameraDeviceName = "XZellCam";
+const char* g_CameraDeviceName = "XZellZeissCam";
 const char* g_HubDeviceName = "XZellHub";
 
 // constants for naming pixel types (allowed values of the "PixelType" property)
