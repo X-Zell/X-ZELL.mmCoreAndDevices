@@ -491,18 +491,19 @@ int XZellZeissCamera::Shutdown()
 {
     LogMessage("ZEISS API METHOD ENTRY: Shutdown");
    initialized_ = false;
+
+   // START OF ZEISS SPECIFIC DEV CODE
+   McammLibTerm();
+   // END OF ZEISS SPECIFIC DEV CODE
+
    return DEVICE_OK;
 }
 
-/**
-* Performs exposure and grabs a single image.
-* This function should block during the actual exposure and return immediately afterwards 
-* (i.e., before readout).  This behavior is needed for proper synchronization with the shutter.
-* Required by the MM::Camera API.
-*/
 int XZellZeissCamera::SnapImage()
 {
     LogMessage("ZEISS API METHOD ENTRY: SnapImage");
+    long imageSize = 0;
+
 	static int callCounter = 0;
 	++callCounter;
 
@@ -512,6 +513,12 @@ int XZellZeissCamera::SnapImage()
    {
       exp = GetSequenceExposure();
    }
+
+	// START OF ZEISS SPECIFIC DEV CODE
+   McammSetExposure(0, 50000); // 50 ms
+
+   McammGetCurrentImageDataSize(0, &imageSize);
+	// END OF ZEISS SPECIFIC DEV CODE
 
    if (!fastImage_)
    {
