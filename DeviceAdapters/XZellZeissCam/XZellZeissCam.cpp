@@ -263,9 +263,6 @@ int XZellZeissCamera::Initialize()
    std::vector<std::string> pixelTypeValues;
    pixelTypeValues.push_back(g_PixelType_8bit);
    pixelTypeValues.push_back(g_PixelType_16bit); 
-	pixelTypeValues.push_back(g_PixelType_32bitRGB);
-	pixelTypeValues.push_back(g_PixelType_64bitRGB);
-   pixelTypeValues.push_back(::g_PixelType_32bit);
 
    nRet = SetAllowedValues(MM::g_Keyword_PixelType, pixelTypeValues);
    if (nRet != DEVICE_OK)
@@ -1176,27 +1173,6 @@ int XZellZeissCamera::OnPixelType(MM::PropertyBase* pProp, MM::ActionType eAct)
             bitDepth_ = 16;
             ret=DEVICE_OK;
          }
-         else if ( pixelType.compare(g_PixelType_32bitRGB) == 0)
-         {
-            nComponents_ = 4;
-            img_.Resize(img_.Width(), img_.Height(), 4);
-            bitDepth_ = 8;
-            ret=DEVICE_OK;
-         }
-         else if ( pixelType.compare(g_PixelType_64bitRGB) == 0)
-         {
-            nComponents_ = 4;
-            img_.Resize(img_.Width(), img_.Height(), 8);
-            bitDepth_ = 16;
-            ret=DEVICE_OK;
-         }
-         else if ( pixelType.compare(g_PixelType_32bit) == 0)
-         {
-            nComponents_ = 1;
-            img_.Resize(img_.Width(), img_.Height(), 4);
-            bitDepth_ = 32;
-            ret=DEVICE_OK;
-         }
          else
          {
             // on error switch to default pixel type
@@ -1218,21 +1194,6 @@ int XZellZeissCamera::OnPixelType(MM::PropertyBase* pProp, MM::ActionType eAct)
          else if (bytesPerPixel == 2)
          {
          	pProp->Set(g_PixelType_16bit);
-         }
-         else if (bytesPerPixel == 4)
-         {
-            if (nComponents_ == 4)
-            {
-			   pProp->Set(g_PixelType_32bitRGB);
-            }
-            else if (nComponents_ == 1)
-            {
-               pProp->Set(::g_PixelType_32bit);
-            }
-         }
-         else if (bytesPerPixel == 8)
-         {
-            pProp->Set(g_PixelType_64bitRGB);
          }
 		 else
          {
@@ -1337,18 +1298,6 @@ int XZellZeissCamera::OnBitDepth(MM::PropertyBase* pProp, MM::ActionType eAct)
          {
 				bytesPerPixel = 2;
          }
-			else if ( pixelType.compare(g_PixelType_32bitRGB) == 0)
-			{
-				bytesPerPixel = 4;
-			}
-			else if ( pixelType.compare(g_PixelType_32bit) == 0)
-			{
-				bytesPerPixel = 4;
-			}
-			else if ( pixelType.compare(g_PixelType_64bitRGB) == 0)
-			{
-				bytesPerPixel = 8;
-			}
 			img_.Resize(img_.Width(), img_.Height(), bytesPerPixel);
 
       } break;
@@ -1767,18 +1716,6 @@ int XZellZeissCamera::ResizeImageBuffer()
    {
       byteDepth = 2;
    }
-	else if ( pixelType.compare(g_PixelType_32bitRGB) == 0)
-	{
-      byteDepth = 4;
-	}
-	else if ( pixelType.compare(g_PixelType_32bit) == 0)
-	{
-      byteDepth = 4;
-	}
-	else if ( pixelType.compare(g_PixelType_64bitRGB) == 0)
-	{
-      byteDepth = 8;
-	}
 
    img_.Resize(cameraCCDXSize_/binSize_, cameraCCDYSize_/binSize_, byteDepth);
    return DEVICE_OK;
@@ -1938,151 +1875,7 @@ void XZellZeissCamera::GenerateSyntheticImage(ImgBuffer& img, double exp)
 		}
 	
 	}
-   else if (pixelType.compare(g_PixelType_32bit) == 0)
-   {
-      double pedestal = 127 * exp / 100.0 * GetBinning() * GetBinning();
-      float* pBuf = (float*) const_cast<unsigned char*>(img.GetPixels());
-      float saturatedValue = 255.;
-      memset(pBuf, 0, img.Height()*imgWidth*4);
-      // static unsigned int j2;
-      for (j=0; j<img.Height(); j++)
-      {
-         for (k=0; k<imgWidth; k++)
-         {
-            long lIndex = imgWidth*j + k;
-            double value =  (g_IntensityFactor_ * std::min(255.0, (pedestal + dAmp * sin(dPhase_ + dLinePhase + (2.0 * lSinePeriod * k) / lPeriod))));
-            if (value > maxDrawnVal) {
-                maxDrawnVal = value;
-            }
-            *(pBuf + lIndex) = (float) value;
-            if( 0 == lIndex)
-            {
-               std::ostringstream os;
-               os << " first pixel is " << (float)value;
-               LogMessage(os.str().c_str(), true);
-
-            }
-         }
-         dLinePhase += cLinePhaseInc;
-      }
-
-	   for(int snoise = 0; snoise < pixelsToSaturate; ++snoise)
-		{
-			j = (unsigned)(0.5 + (double)img.Height()*(double)rand()/(double)RAND_MAX);
-			k = (unsigned)(0.5 + (double)imgWidth*(double)rand()/(double)RAND_MAX);
-			*(pBuf + imgWidth*j + k) = saturatedValue;
-		}
-		int pnoise;
-		for(pnoise = 0; pnoise < pixelsToDrop; ++pnoise)
-		{
-			j = (unsigned)(0.5 + (double)img.Height()*(double)rand()/(double)RAND_MAX);
-			k = (unsigned)(0.5 + (double)imgWidth*(double)rand()/(double)RAND_MAX);
-			*(pBuf + imgWidth*j + k) = 0;
-      }
-	
-	}
-	else if (pixelType.compare(g_PixelType_32bitRGB) == 0)
-	{
-      double pedestal = 127 * exp / 100.0;
-      unsigned int * pBuf = (unsigned int*) rawBuf;
-
-      unsigned char* pTmpBuffer = NULL;
-
-      if(debugRGB)
-      {
-         const unsigned long bfsize = img.Height() * imgWidth * 3;
-         if(  bfsize != dbgBufferSize)
-         {
-            if (NULL != pDebug)
-            {
-               free(pDebug);
-               pDebug = NULL;
-            }
-            pDebug = (unsigned char*)malloc( bfsize);
-            if( NULL != pDebug)
-            {
-               dbgBufferSize = bfsize;
-            }
-         }
-      }
-
-		// only perform the debug operations if pTmpbuffer is not 0
-      pTmpBuffer = pDebug;
-      unsigned char* pTmp2 = pTmpBuffer;
-      if( NULL!= pTmpBuffer)
-			memset( pTmpBuffer, 0, img.Height() * imgWidth * 3);
-
-      for (j=0; j<img.Height(); j++)
-      {
-         unsigned char theBytes[4];
-         for (k=0; k<imgWidth; k++)
-         {
-            long lIndex = imgWidth*j + k;
-            double factor = (2.0 * lSinePeriod * k) / lPeriod;
-            unsigned char value0 =   (unsigned char) std::min(255.0, (pedestal + dAmp * sin(dPhase_ + dLinePhase + factor)));
-            theBytes[0] = value0;
-            if( NULL != pTmpBuffer)
-               pTmp2[1] = value0;
-            unsigned char value1 =   (unsigned char) std::min(255.0, (pedestal + dAmp * sin(dPhase_ + dLinePhase*2 + factor)));
-            theBytes[1] = value1;
-            if( NULL != pTmpBuffer)
-               pTmp2[2] = value1;
-            unsigned char value2 = (unsigned char) std::min(255.0, (pedestal + dAmp * sin(dPhase_ + dLinePhase*4 + factor)));
-            theBytes[2] = value2;
-
-            if( NULL != pTmpBuffer){
-               pTmp2[3] = value2;
-               pTmp2+=3;
-            }
-            theBytes[3] = 0;
-            unsigned long tvalue = *(unsigned long*)(&theBytes[0]);
-            if (tvalue > maxDrawnVal) {
-                maxDrawnVal = tvalue;
-            }
-            *(pBuf + lIndex) =  tvalue ;  //value0+(value1<<8)+(value2<<16);
-         }
-         dLinePhase += cLinePhaseInc;
-      }
-
-
-      // ImageJ's AWT images are loaded with a Direct Color processor which expects big endian ARGB,
-      // which on little endian architectures corresponds to BGRA (see: https://en.wikipedia.org/wiki/RGBA_color_model), 
-      // that's why we swapped the Blue and Red components in the generator above.
-      if(NULL != pTmpBuffer)
-      {
-         // write the compact debug image...
-         char ctmp[12];
-         snprintf(ctmp,12,"%ld",iseq++);
-         //writeCompactTiffRGB(imgWidth, img.Height(), pTmpBuffer, ("democamera" + std::string(ctmp)).c_str());
-      }
-
-	}
-
-	// generate an RGB image with bitDepth_ bits in each color
-	else if (pixelType.compare(g_PixelType_64bitRGB) == 0)
-	{
-      double pedestal = maxValue/2 * exp / 100.0 * GetBinning() * GetBinning();
-      double dAmp16 = dAmp * maxValue/255.0; // scale to behave like 8-bit
-      
-		double maxPixelValue = (1<<(bitDepth_))-1;
-      unsigned long long * pBuf = (unsigned long long*) rawBuf;
-      for (j=0; j<img.Height(); j++)
-      {
-         for (k=0; k<imgWidth; k++)
-         {
-            long lIndex = imgWidth*j + k;
-            unsigned long long value0 = (unsigned short) std::min(maxPixelValue, (pedestal + dAmp16 * sin(dPhase_ + dLinePhase + (2.0 * lSinePeriod * k) / lPeriod)));
-            unsigned long long value1 = (unsigned short) std::min(maxPixelValue, (pedestal + dAmp16 * sin(dPhase_ + dLinePhase*2 + (2.0 * lSinePeriod * k) / lPeriod)));
-            unsigned long long value2 = (unsigned short) std::min(maxPixelValue, (pedestal + dAmp16 * sin(dPhase_ + dLinePhase*4 + (2.0 * lSinePeriod * k) / lPeriod)));
-            unsigned long long tval = value0+(value1<<16)+(value2<<32);
-            if (tval > maxDrawnVal) {
-                maxDrawnVal = static_cast<double>(tval);
-            }
-            *(pBuf + lIndex) = tval;
-			}
-         dLinePhase += cLinePhaseInc;
-      }
-	}
+    
 
     if (shouldDisplayImageNumber_) {
         // Draw a seven-segment display in the upper-left corner of the image,
