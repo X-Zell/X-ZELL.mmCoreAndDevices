@@ -37,7 +37,7 @@ double g_IntensityFactor_ = 1.0;
 
 // External names used used by the rest of the system
 // to load particular device from the "XZellZeissCam.dll" library
-const char* g_CameraDeviceName = "XZellZeissCam";
+const char* g_CameraDeviceName = "XZellCam";
 const char* g_HubDeviceName = "XZellHub";
 
 // constants for naming pixel types (allowed values of the "PixelType" property)
@@ -193,6 +193,28 @@ int XZellZeissCamera::Initialize()
    if (initialized_)
       return DEVICE_OK;
 
+   // START OF ZEISS SPECIFIC DEV CODE
+   long error = McammLibInit(false);
+   int numCam = McamGetNumberofCameras();
+   unsigned short* ImageBufferWithHeader = NULL;
+   //long imageSize = 0;
+
+   std::ostringstream oss;
+   oss << "DEV: Number of Cameras found: " << numCam << "\n";
+   LogMessage(oss.str().c_str());
+
+    if (numCam > 0)
+    {
+        McammInit(0);
+        McammInfo(0, &cameraInfos);
+
+        oss << "AxioCam " << cameraInfos.Features << " #" << cameraInfos.SerienNummer;
+        LogMessage(oss.str().c_str());
+	    
+    }
+   // END OF ZEISS SPECIFIC DEV CODE
+
+
    DemoHub* pHub = static_cast<DemoHub*>(GetParentHub());
    if (pHub)
    {
@@ -212,12 +234,12 @@ int XZellZeissCamera::Initialize()
       return nRet;
 
    // Description
-   nRet = CreateStringProperty(MM::g_Keyword_Description, "Demo Camera Device Adapter", true);
+   nRet = CreateStringProperty(MM::g_Keyword_Description, "XZell Zeiss Camera Device Adapter", true);
    if (DEVICE_OK != nRet)
       return nRet;
 
    // CameraName
-   nRet = CreateStringProperty(MM::g_Keyword_CameraName, "DemoCamera-MultiMode", true);
+   nRet = CreateStringProperty(MM::g_Keyword_CameraName, "XZellZeissCamera-MultiMode", true);
    assert(nRet == DEVICE_OK);
 
    // CameraID
@@ -1069,11 +1091,13 @@ int XZellZeissCamera::OnAsyncLeader(MM::PropertyBase* pProp, MM::ActionType eAct
 */
 int XZellZeissCamera::OnBinning(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
+    LogMessage("ZEISS METHOD ENTRY: OnBinning");
    int ret = DEVICE_ERR;
    switch(eAct)
    {
    case MM::AfterSet:
       {
+       LogMessage("ZEISS METHOD ENTRY: OnBinning - MM::AfterSet");
          if(IsCapturing())
             return DEVICE_CAMERA_BUSY_ACQUIRING;
 
@@ -1105,6 +1129,7 @@ int XZellZeissCamera::OnBinning(MM::PropertyBase* pProp, MM::ActionType eAct)
       }break;
    case MM::BeforeGet:
       {
+       LogMessage("ZEISS METHOD ENTRY: OnBinning - MM::BeforeGet");
          ret=DEVICE_OK;
 			pProp->Set(binSize_);
       }break;
