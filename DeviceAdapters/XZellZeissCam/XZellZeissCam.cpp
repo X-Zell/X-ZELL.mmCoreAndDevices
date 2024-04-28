@@ -196,7 +196,7 @@ int XZellZeissCamera::Initialize()
    // START OF ZEISS SPECIFIC DEV CODE
    long error = McammLibInit(false);
    int numCam = McamGetNumberofCameras();
-   unsigned short* ImageBufferWithHeader = NULL;
+   //unsigned short* ImageBufferWithHeader = NULL;
    //long imageSize = 0;
 
    std::ostringstream oss;
@@ -490,7 +490,11 @@ int XZellZeissCamera::Shutdown()
    initialized_ = false;
 
    // START OF ZEISS SPECIFIC DEV CODE
+   McammClose(0);
+   LogMessage("DEV: McammClose complete");
+
    McammLibTerm();
+   LogMessage("DEV: McammLibTerm complete");
    // END OF ZEISS SPECIFIC DEV CODE
 
    return DEVICE_OK;
@@ -499,6 +503,7 @@ int XZellZeissCamera::Shutdown()
 int XZellZeissCamera::SnapImage()
 {
     LogMessage("ZEISS API METHOD ENTRY: SnapImage");
+    unsigned short* ImageBufferWithHeader = NULL;
     long imageSize = 0;
 
 	static int callCounter = 0;
@@ -512,13 +517,68 @@ int XZellZeissCamera::SnapImage()
    }
 
 	// START OF ZEISS SPECIFIC DEV CODE
-   std::ostringstream oss;
-   oss << "DEV: Retreived Exposure: " << exp << "\n";
-   LogMessage(oss.str().c_str());
+   std::ostringstream oss1;
+   oss1 << "DEV: Retrieved Exposure: " << exp << "\n";
+   LogMessage(oss1.str().c_str());
 
    McammSetExposure(0, static_cast<long>(exp * 1000)); // 50000 equals 50 ms
 
    McammGetCurrentImageDataSize(0, &imageSize);
+   
+   std::ostringstream oss2;
+   oss2 << "DEV: Retrieved Image Size: " << imageSize << "\n";
+   LogMessage(oss2.str().c_str());
+
+
+   ImageBufferWithHeader = (unsigned short*)malloc(imageSize);
+   imageSize /= 2;
+
+
+
+   long error = McammAcquisitionEx(0, ImageBufferWithHeader, imageSize, NULL, NULL);
+
+   if (error == 0)
+   {
+       IMAGE_HEADER* imageHeader = (IMAGE_HEADER*)ImageBufferWithHeader;
+       unsigned short* pixelData = ImageBufferWithHeader + imageHeader->headerSize;
+       unsigned short pixelValue1 = pixelData[0];
+       unsigned short pixelValue2 = pixelData[1];
+       unsigned short pixelValue3 = pixelData[2];
+
+       int imageCount = imageHeader->imageNumber;
+
+       //printf("Image Count = %d, ", imageCount);
+       std::ostringstream oss3;
+       oss3 << "Image Count = " << imageCount << "\n";
+       LogMessage(oss3.str().c_str());
+
+       if (cameraInfos.Type == mcamRGB)
+       {
+           //printf("R %d - G %d - B %d \n", imageCount, pixelValue1, pixelValue2, pixelValue3);
+           std::ostringstream oss4;
+           oss4 << "R " << pixelValue1 << "G " << pixelValue2 << "B " << pixelValue3 << "\n";
+           LogMessage(oss4.str().c_str());
+       }
+       else
+       {
+           //printf("pixels data = %d - %d - %d \n", imageCount, pixelValue1, pixelValue2, pixelValue3);
+           std::ostringstream oss4;
+           oss4 << "pixels data = " << pixelValue1 << " - " << pixelValue2 << " - " << pixelValue3 << "\n";
+           LogMessage(oss4.str().c_str());
+       }
+   }
+   else
+   {
+       //printf("Error %d\n", error);
+       std::ostringstream oss3;
+       oss3 << "Error: " << error << "\n";
+       LogMessage(oss3.str().c_str());
+   }
+
+   if (ImageBufferWithHeader != NULL)
+   {
+       free(ImageBufferWithHeader);
+   }
 	// END OF ZEISS SPECIFIC DEV CODE
 
    if (!fastImage_)
