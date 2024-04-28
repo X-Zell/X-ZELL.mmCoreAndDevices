@@ -512,7 +512,11 @@ int XZellZeissCamera::SnapImage()
    }
 
 	// START OF ZEISS SPECIFIC DEV CODE
-   McammSetExposure(0, 50000); // 50 ms
+   std::ostringstream oss;
+   oss << "DEV: Retreived Exposure: " << exp << "\n";
+   LogMessage(oss.str().c_str());
+
+   McammSetExposure(0, static_cast<long>(exp * 1000)); // 50000 equals 50 ms
 
    McammGetCurrentImageDataSize(0, &imageSize);
 	// END OF ZEISS SPECIFIC DEV CODE
