@@ -196,6 +196,14 @@ int XZellZeissCamera::Initialize()
    // START OF ZEISS SPECIFIC DEV CODE
    long error = McammLibInit(false);
    int numCam = McamGetNumberofCameras();
+   long binningValue = 0;
+   long pixelClockIndex = 0;
+   BOOL hasSubSampling = false;
+   long resolutionWidth = 0;
+   long resolutionHeight = 0;
+   eMcamScanMode scanMode;
+   MCammLineFlickerSuppressionMode lineFlickerSuppressionMode;
+   long bitsPerPixel = 0;
    //unsigned short* ImageBufferWithHeader = NULL;
    //long imageSize = 0;
 
@@ -211,6 +219,107 @@ int XZellZeissCamera::Initialize()
         std::ostringstream ossB;
         ossB << "AxioCam " << cameraInfos.Features << " #" << cameraInfos.SerienNummer;
         LogMessage(ossB.str().c_str());
+
+        long result = McammGetCurrentBinning(0, &binningValue);
+        if (result == 0)
+        {
+            std::ostringstream oss;
+            oss << "DEV: Retrieved Binning Value: " << binningValue << "\n";
+            oss << "DEV: binSize_ Value: " << binSize_ << "\n";
+            LogMessage(oss.str().c_str());
+            binSize_ = binningValue;
+        }
+        result = McammGetCurrentPixelClock(0, &pixelClockIndex);
+        if (result == 0)
+        {
+            std::ostringstream oss;
+            oss << "DEV: Retrieved Pixel Clock Index: " << pixelClockIndex << "\n";
+            LogMessage(oss.str().c_str());
+        }
+        long hasSubSamplingResult = MCammHasSubsampling(0, 1, &hasSubSampling);
+        if (hasSubSamplingResult > 0)
+        {
+            std::ostringstream oss;
+            oss << "DEV: hasSubSampling can be 1: " << hasSubSampling << "\n";
+            LogMessage(oss.str().c_str());
+        }
+        hasSubSamplingResult = MCammHasSubsampling(0, 2, &hasSubSampling);
+        if (hasSubSamplingResult > 0)
+        {
+            std::ostringstream oss;
+            oss << "DEV: hasSubSampling can be 2: " << hasSubSampling << "\n";
+            LogMessage(oss.str().c_str());
+        }
+        {
+            long currentResolution = McammGetCurrentResolution(0);
+            std::ostringstream oss;
+            oss << "DEV: Current Resolution: " << currentResolution << "\n";
+            LogMessage(oss.str().c_str());
+        }
+        {
+            long numberOfResolutions = McammGetNumberOfResolutions(0);
+            std::ostringstream oss;
+            oss << "DEV: Number of Resolutions: " << numberOfResolutions << "\n";
+            LogMessage(oss.str().c_str());
+        }
+        result = McammGetResolutionValues(0, 1, &resolutionWidth, &resolutionHeight, &scanMode);
+        if (result == 0)
+        {
+            std::ostringstream oss;
+            oss << "DEV: Resolution 1 Width: " << resolutionWidth << "\n";
+            oss << "DEV: Resolution 1 Height: " << resolutionHeight << "\n";
+            LogMessage(oss.str().c_str());
+        }
+        result = McammGetResolutionValues(0, 2, &resolutionWidth, &resolutionHeight, &scanMode);
+        if (result == 0)
+        {
+            std::ostringstream oss;
+            oss << "DEV: Resolution 2 Width: " << resolutionWidth << "\n";
+            oss << "DEV: Resolution 2 Height: " << resolutionHeight << "\n";
+            LogMessage(oss.str().c_str());
+        }
+        result = McammGetResolutionValues(0, 0, &resolutionWidth, &resolutionHeight, &scanMode);
+        if (result == 0)
+        {
+            std::ostringstream oss;
+            oss << "DEV: Resolution 0 Width: " << resolutionWidth << "\n";
+            oss << "DEV: Resolution 0 Height: " << resolutionHeight << "\n";
+            LogMessage(oss.str().c_str());
+        }
+        result = McammGetLineFlickerSuppressionMode(0, &lineFlickerSuppressionMode);
+        if (result == 0)
+        {
+			std::string lineFlickerSuppressionModeValue;
+			switch (lineFlickerSuppressionMode) {
+            case mcammLineFlickerSuppressionOff:
+                lineFlickerSuppressionModeValue = "Off";
+                break;
+            case mcammLineFlickerSuppressionLinear:
+                lineFlickerSuppressionModeValue = "Linear";
+                break;
+            case mcammLineFlickerSuppressionBiLinear:
+                lineFlickerSuppressionModeValue = "BiLinear";
+                break;
+            }
+            std::ostringstream oss;
+            oss << "DEV: Line Flicker Suppression Mode: " << lineFlickerSuppressionModeValue << "\n";
+            LogMessage(oss.str().c_str());
+        }
+        result = McammGetCurrentBitsPerPixelEx(0, &bitsPerPixel);
+        if (result == 0)
+        {
+            std::ostringstream oss;
+            oss << "DEV: BitsPerPixel: " << bitsPerPixel << "\n";
+            LogMessage(oss.str().c_str());
+        }
+        //result = McammSetBitsPerPixel(0, 8);
+        //result = McammGetCurrentBitsPerPixelEx(0, &bitsPerPixel);
+        //if (result == 0)
+        //{
+        //    std::ostringstream oss;
+        //    oss << "DEV: BitsPerPixel: " << bitsPerPixel << "\n";
+        //    LogMessage(oss.str().c_str());
+        //}
 	    
     }
    // END OF ZEISS SPECIFIC DEV CODE
@@ -877,17 +986,17 @@ int XZellZeissCamera::SetAllowedBinning()
    std::vector<std::string> binValues;
    binValues.push_back("1");
    binValues.push_back("2");
-   if (scanMode_ < 3)
-      binValues.push_back("4");
-   if (scanMode_ < 2)
-      binValues.push_back("8");
-   if (binSize_ == 8 && scanMode_ == 3) {
-      SetProperty(MM::g_Keyword_Binning, "2");
-   } else if (binSize_ == 8 && scanMode_ == 2) {
-      SetProperty(MM::g_Keyword_Binning, "4");
-   } else if (binSize_ == 4 && scanMode_ == 3) {
-      SetProperty(MM::g_Keyword_Binning, "2");
-   }
+   //if (scanMode_ < 3)
+   //   binValues.push_back("4");
+   //if (scanMode_ < 2)
+   //   binValues.push_back("8");
+   //if (binSize_ == 8 && scanMode_ == 3) {
+   //   SetProperty(MM::g_Keyword_Binning, "2");
+   //} else if (binSize_ == 8 && scanMode_ == 2) {
+   //   SetProperty(MM::g_Keyword_Binning, "4");
+   //} else if (binSize_ == 4 && scanMode_ == 3) {
+   //   SetProperty(MM::g_Keyword_Binning, "2");
+   //}
       
    LogMessage("Setting Allowed Binning settings", true);
    return SetAllowedValues(MM::g_Keyword_Binning, binValues);
@@ -1209,31 +1318,46 @@ int XZellZeissCamera::OnBinning(MM::PropertyBase* pProp, MM::ActionType eAct)
          if(IsCapturing())
             return DEVICE_CAMERA_BUSY_ACQUIRING;
 
-         // the user just set the new value for the property, so we have to
-         // apply this value to the 'hardware'.
-         long binFactor;
-         pProp->Get(binFactor);
-         if(binFactor > 0 && binFactor < 10)
+         // START OF ZEISS SPECIFIC DEV CODE
+         long binSize;
+         pProp->Get(binSize);
+         binSize_ = (int)binSize;
+
+         McammSetBinning(0, binSize);
+
          {
-            // calculate ROI using the previous bin settings
-            double factor = (double) binFactor / (double) binSize_;
-            roiX_ = (unsigned int) (roiX_ / factor);
-            roiY_ = (unsigned int) (roiY_ / factor);
-            for (unsigned int i = 0; i < multiROIXs_.size(); ++i)
-            {
-               multiROIXs_[i]  = (unsigned int) (multiROIXs_[i] / factor);
-               multiROIYs_[i] = (unsigned int) (multiROIYs_[i] / factor);
-               multiROIWidths_[i] = (unsigned int) (multiROIWidths_[i] / factor);
-               multiROIHeights_[i] = (unsigned int) (multiROIHeights_[i] / factor);
-            }
-            img_.Resize( (unsigned int) (img_.Width()/factor), 
-                           (unsigned int) (img_.Height()/factor) );
-            binSize_ = binFactor;
-            std::ostringstream os;
-            os << binSize_;
-            OnPropertyChanged("Binning", os.str().c_str());
-            ret=DEVICE_OK;
+             std::ostringstream oss;  // New oss, different scope
+             oss << "DEV: McammSetBinning to " << binSize << "\n";
+             LogMessage(oss.str().c_str());
          }
+
+         ret = ResizeImageBuffer();
+
+         //// the user just set the new value for the property, so we have to
+         //// apply this value to the 'hardware'.
+         //long binFactor;
+         //pProp->Get(binFactor);
+         //if(binFactor > 0 && binFactor < 3)
+         //{
+         //   // calculate ROI using the previous bin settings
+         //   double factor = (double) binFactor / (double) binSize_;
+         //   roiX_ = (unsigned int) (roiX_ / factor);
+         //   roiY_ = (unsigned int) (roiY_ / factor);
+         //   for (unsigned int i = 0; i < multiROIXs_.size(); ++i)
+         //   {
+         //      multiROIXs_[i]  = (unsigned int) (multiROIXs_[i] / factor);
+         //      multiROIYs_[i] = (unsigned int) (multiROIYs_[i] / factor);
+         //      multiROIWidths_[i] = (unsigned int) (multiROIWidths_[i] / factor);
+         //      multiROIHeights_[i] = (unsigned int) (multiROIHeights_[i] / factor);
+         //   }
+         //   img_.Resize( (unsigned int) (img_.Width()/factor), 
+         //                  (unsigned int) (img_.Height()/factor) );
+         //   binSize_ = binFactor;
+         //   std::ostringstream os;
+         //   os << binSize_;
+         //   OnPropertyChanged("Binning", os.str().c_str());
+         //   ret=DEVICE_OK;
+         //}
       }break;
    case MM::BeforeGet:
       {
@@ -1831,15 +1955,13 @@ void XZellZeissCamera::GenerateEmptyImage(ImgBuffer& img)
    if (img.Height() == 0 || img.Width() == 0 || img.Depth() == 0)
       return;
    unsigned char* pBuf = const_cast<unsigned char*>(img.GetPixels());
-   std::ostringstream oss10;
-   oss10 << "DEV: GenerateEmptyImage img_.Width() = " << img_.Width() << "\n";
-   LogMessage(oss10.str().c_str());
-   std::ostringstream oss11;
-   oss11 << "DEV: GenerateEmptyImage img_.Height() = " << img_.Height() << "\n";
-   LogMessage(oss11.str().c_str());
-   std::ostringstream oss12;
-   oss12 << "DEV: GenerateEmptyImage img_.Depth() = " << img_.Depth() << "\n";
-   LogMessage(oss12.str().c_str());
+   {
+       std::ostringstream oss;
+       oss << "DEV: GenerateEmptyImage img_.Width() = " << img_.Width() << "\n";
+       oss << "DEV: GenerateEmptyImage img_.Height() = " << img_.Height() << "\n";
+       oss << "DEV: GenerateEmptyImage img_.Depth() = " << img_.Depth() << "\n";
+       LogMessage(oss.str().c_str());
+   }
    memset(pBuf, 0, img.Height()*img.Width()*img.Depth());
 }
 
