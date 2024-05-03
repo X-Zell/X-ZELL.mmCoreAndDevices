@@ -54,6 +54,26 @@ const char* g_Color_Test = "Color Test Pattern";
 
 enum { MODE_ARTIFICIAL_WAVES, MODE_NOISE, MODE_COLOR_TEST };
 
+
+// START OF ZEISS SPECIFIC DEV CODE
+void* pContext;
+unsigned long contextSize = 0;
+ContinuousCallbackProc callBackProc;
+unsigned long pimageByteSize = 0;
+long error = 0;
+
+// Variables for Double Buffering
+unsigned short* ImageBufferWithHeader[2]; // 2 images buffer in which the ImageCllback copies the current image
+unsigned short* processedImage;
+int imageNumber[2];
+int lastImageRead = 0;
+std::mutex bufferMutex[2];
+
+unsigned int imageCount = 0;
+
+bool processImageInSDK = true;
+// END OF ZEISS SPECIFIC DEV CODE
+
 ///////////////////////////////////////////////////////////////////////////////
 // Exported MMDevice API
 ///////////////////////////////////////////////////////////////////////////////
@@ -144,7 +164,7 @@ XZellZeissCamera::XZellZeissCamera() :
    // call the base class method to set-up default error codes/messages
    InitializeDefaultErrorMessages();
    readoutStartTime_ = GetCurrentMMTime();
-   thd_ = new MySequenceThread(this);
+   thd_ = new ZeissAcquisitionThread(this);
 
    // parent ID display
    CreateHubIDProperty();
@@ -194,8 +214,6 @@ int XZellZeissCamera::Initialize()
       return DEVICE_OK;
 
    // START OF ZEISS SPECIFIC DEV CODE
-   long error = McammLibInit(false);
-   int numCam = McamGetNumberofCameras();
    long binningValue = 0;
    long pixelClockIndex = 0;
    BOOL hasSubSampling = false;
@@ -204,21 +222,27 @@ int XZellZeissCamera::Initialize()
    eMcamScanMode scanMode;
    MCammLineFlickerSuppressionMode lineFlickerSuppressionMode;
    long bitsPerPixel = 0;
+   MCammColorMatrixOptimizationMode colorMatrixMode;
    //unsigned short* ImageBufferWithHeader = NULL;
    //long imageSize = 0;
+
+   long error = McammLibInit(false);
+   int numCam = McamGetNumberofCameras();
 
    std::ostringstream ossA;
    ossA << "DEV: Number of Cameras found: " << numCam << "\n";
    LogMessage(ossA.str().c_str());
 
-    if (numCam > 0)
-    {
-        McammInit(0);
-        McammInfo(0, &cameraInfos);
+   if (numCam > 0)
+   {
+       McammInit(0);
+       McammInfo(0, &cameraInfos);
 
-        std::ostringstream ossB;
-        ossB << "AxioCam " << cameraInfos.Features << " #" << cameraInfos.SerienNummer;
-        LogMessage(ossB.str().c_str());
+       {
+	       std::ostringstream ossB;
+	       ossB << "AxioCam " << cameraInfos.Features << " #" << cameraInfos.SerienNummer;
+	       LogMessage(ossB.str().c_str());
+	   }
 
         long result = McammGetCurrentBinning(0, &binningValue);
         if (result == 0)
@@ -320,6 +344,14 @@ int XZellZeissCamera::Initialize()
         //    oss << "DEV: BitsPerPixel: " << bitsPerPixel << "\n";
         //    LogMessage(oss.str().c_str());
         //}
+
+        result = McammGetColorMatrixOptimizationMode(0, &colorMatrixMode);
+        if (result == 0)
+        {
+            std::ostringstream oss;
+            oss << "DEV: Color Matrix Mode: " << colorMatrixMode << "\n";
+            LogMessage(oss.str().c_str());
+        }
 	    
     }
    // END OF ZEISS SPECIFIC DEV CODE
@@ -610,10 +642,31 @@ int XZellZeissCamera::Shutdown()
    return DEVICE_OK;
 }
 
+BOOL SnapImageProgress(long done, long total, eMcamStatus Status, void* UserParam)
+{
+    XZellZeissCamera* camera = static_cast<XZellZeissCamera*>(UserParam);
+    camera->LogMessage("ZEISS API METHOD ENTRY: SnapImageProgress");
+    std::ostringstream oss;
+    if (Status == mcamStatusStarted)
+    {
+    	oss << "DEV: Status (eMcamStatus) is mcamStatusStarted\n";
+	}
+	else if (Status == mcamStatusReadout)
+	{
+        oss << "DEV: Status (eMcamStatus) is mcamStatusReadout\n";
+	}
+    int process = round(100 * done / total);
+    oss << "DEV: Acquisition status: " << process << " percent completed\n";
+    camera->LogMessage(oss.str().c_str());
+    //printf("Acquisition status: %d percent completed", process);
+}
+
 int XZellZeissCamera::SnapImage()
 {
     LogMessage("ZEISS API METHOD ENTRY: SnapImage");
     unsigned short* ImageBufferWithHeader = NULL;
+    long imageWidth = 0;
+    long imageHeight = 0;
     long imageSize = 0;
 
 	static int callCounter = 0;
@@ -627,18 +680,27 @@ int XZellZeissCamera::SnapImage()
    }
 
 	// START OF ZEISS SPECIFIC DEV CODE
-   std::ostringstream oss1;
-   oss1 << "DEV: Retrieved Exposure: " << exp << "\n";
-   LogMessage(oss1.str().c_str());
+   {
+       std::ostringstream oss;
+       oss << "DEV: Retrieved Exposure: " << exp << "\n";
+       LogMessage(oss.str().c_str());
+   }
 
    McammSetExposure(0, static_cast<long>(exp * 1000)); // 50000 equals 50 ms
 
+   McammGetCurrentDataSize(0, &imageWidth, &imageHeight);
+   {
+       std::ostringstream oss;
+       oss << "DEV: Retrieved Image Width: " << imageWidth << "\n";
+       oss << "DEV: Retrieved Image Height: " << imageHeight << "\n";
+       LogMessage(oss.str().c_str());
+   }
    McammGetCurrentImageDataSize(0, &imageSize);
-   
-   std::ostringstream oss2;
-   oss2 << "DEV: Retrieved Image Size: " << imageSize << "\n";
-   LogMessage(oss2.str().c_str());
-
+   {
+       std::ostringstream oss;
+       oss << "DEV: Retrieved Image Size: " << imageSize << "\n";
+       LogMessage(oss.str().c_str());
+   }
 
    ImageBufferWithHeader = (unsigned short*)malloc(imageSize);
    imageSize /= 2;
@@ -646,6 +708,12 @@ int XZellZeissCamera::SnapImage()
 
 
    long error = McammAcquisitionEx(0, ImageBufferWithHeader, imageSize, NULL, NULL);
+   //long error = McammAcquisitionEx(0, ImageBufferWithHeader, imageSize, SnapImageProgress, this);
+    {
+	    std::ostringstream oss;
+		oss << "DEV: McammAcquisitionEx complete with error code: " << error << "\n";
+		LogMessage(oss.str().c_str());
+    }
 
    if (error == 0)
    {
@@ -657,61 +725,67 @@ int XZellZeissCamera::SnapImage()
 
        int imageCount = imageHeader->imageNumber;
 
-       //printf("Image Count = %d, ", imageCount);
-       std::ostringstream oss3;
-       oss3 << "DEV: Image Count = " << imageCount << "\n";
-       LogMessage(oss3.str().c_str());
+       {
+           //printf("Image Count = %d, ", imageCount);
+           std::ostringstream oss;
+           oss << "DEV: Image Count = " << imageCount << "\n";
+           LogMessage(oss.str().c_str());
+       }
 
        if (cameraInfos.Type == mcamRGB)
        {
            //printf("R %d - G %d - B %d \n", imageCount, pixelValue1, pixelValue2, pixelValue3);
-           std::ostringstream oss4;
-           oss4 << "DEV: R " << pixelValue1 << "G " << pixelValue2 << "B " << pixelValue3 << "\n";
-           LogMessage(oss4.str().c_str());
+           std::ostringstream oss;
+           oss << "DEV: R " << pixelValue1 << "G " << pixelValue2 << "B " << pixelValue3 << "\n";
+           LogMessage(oss.str().c_str());
        }
        else
        {
            //printf("pixels data = %d - %d - %d \n", imageCount, pixelValue1, pixelValue2, pixelValue3);
-           std::ostringstream oss4;
-           oss4 << "DEV: pixels data = " << pixelValue1 << " - " << pixelValue2 << " - " << pixelValue3 << "\n";
-           LogMessage(oss4.str().c_str());
+           std::ostringstream oss;
+           oss << "DEV: pixels data = " << pixelValue1 << " - " << pixelValue2 << " - " << pixelValue3 << "\n";
+           LogMessage(oss.str().c_str());
        }
 
        int headerSize = imageHeader->headerSize;
-       std::ostringstream oss5;
-       oss5 << "DEV: Header Size = " << headerSize << "\n";
-       LogMessage(oss5.str().c_str());
+       {
+           std::ostringstream oss;
+           oss << "DEV: Header Size = " << headerSize << "\n";
+           LogMessage(oss.str().c_str());
+       }
 
        int pixelFormat = imageHeader->pixelFormat;
-       std::ostringstream oss6;
-       oss6 << "DEV: Pixel Format = " << pixelFormat << "\n";
-       LogMessage(oss6.str().c_str());
+       {
+           std::ostringstream oss;
+           oss << "DEV: Pixel Format = " << pixelFormat << "\n";
+           LogMessage(oss.str().c_str());
+       }
 
        int bitsPerPixel = imageHeader->bitsPerPixel;
-       std::ostringstream oss7;
-       oss7 << "DEV: Bits per Pixel = " << bitsPerPixel << "\n";
-       LogMessage(oss7.str().c_str());
+       {
+           std::ostringstream oss;
+           oss << "DEV: Bits per Pixel = " << bitsPerPixel << "\n";
+           LogMessage(oss.str().c_str());
+       }
 
        int bytesPerPixel = imageHeader->bytesPerPixel;
        unsigned int numerator = bytesPerPixel >> 16;  // Shift right by 16 bits to get the upper 16 bits (numerator)
        unsigned int denominator = bytesPerPixel & 0xFFFF;  // Use bitwise AND to mask the lower 16 bits
 
-       std::ostringstream oss8;
-       oss8 << "DEV: Numerator of Bytes per Pixel = " << numerator << "\n";
-       LogMessage(oss8.str().c_str());
-       std::ostringstream oss9;
-       oss9 << "DEV: Denominator of Bytes per Pixel = " << denominator << "\n";
-       LogMessage(oss9.str().c_str());
+       {
+           std::ostringstream oss;
+           oss << "DEV: Numerator of Bytes per Pixel = " << numerator << "\n";
+           oss << "DEV: Denominator of Bytes per Pixel = " << denominator << "\n";
+           LogMessage(oss.str().c_str());
+       }
 
-       std::ostringstream oss10;
-       oss10 << "DEV: img_.Width() = " << img_.Width() << "\n";
-       LogMessage(oss10.str().c_str());
-       std::ostringstream oss11;
-       oss11 << "DEV: img_.Height() = " << img_.Height() << "\n";
-       LogMessage(oss11.str().c_str());
-       std::ostringstream oss12;
-       oss12 << "DEV: img_.Depth() = " << img_.Depth() << "\n";
-       LogMessage(oss12.str().c_str());
+       {
+           std::ostringstream oss;
+           oss << "DEV: img_.Width() = " << img_.Width() << "\n";
+           oss << "DEV: img_.Height() = " << img_.Height() << "\n";
+           oss << "DEV: img_.Depth() = " << img_.Depth() << "\n";
+           LogMessage(oss.str().c_str());
+       }
        
        memcpy(img_.GetPixelsRW(), ImageBufferWithHeader, static_cast<size_t>(img_.Width()) * img_.Height() * img_.Depth());
 		
@@ -719,9 +793,9 @@ int XZellZeissCamera::SnapImage()
    else
    {
        //printf("Error %d\n", error);
-       std::ostringstream oss3;
-       oss3 << "Error: " << error << "\n";
-       LogMessage(oss3.str().c_str());
+       std::ostringstream oss;
+       oss << "Error: " << error << "\n";
+       LogMessage(oss.str().c_str());
    }
 
    if (ImageBufferWithHeader != NULL)
@@ -1002,6 +1076,34 @@ int XZellZeissCamera::SetAllowedBinning()
    return SetAllowedValues(MM::g_Keyword_Binning, binValues);
 }
 
+BOOL LiveCallback(unsigned short* img, long bytesize, long currbufnr, LONGLONG FrameTime, void* UserParam)
+{
+    int lockNumber = 0;
+    bool locked = false;
+
+    for (int i = 0; i < 2; i++)
+    {
+        locked = bufferMutex[i].try_lock();
+
+        if (locked)
+        {
+            lockNumber = i;
+            break;
+        }
+    }
+
+    if (locked)
+    {
+        memcpy(ImageBufferWithHeader[lockNumber], img, bytesize);
+        imageCount++;
+        imageNumber[lockNumber] = imageCount;
+
+        bufferMutex[lockNumber].unlock();
+    }
+
+    return true;
+}
+
 
 /**
  * Required by the MM::Camera API
@@ -1011,7 +1113,60 @@ int XZellZeissCamera::SetAllowedBinning()
 int XZellZeissCamera::StartSequenceAcquisition(double interval)
 {
     LogMessage("ZEISS API METHOD ENTRY: StartSequenceAcquisition(interval)");
-   return StartSequenceAcquisition(LONG_MAX, interval, false);            
+   //return StartSequenceAcquisition(LONG_MAX, interval, false);
+
+    // START OF ZEISS SPECIFIC DEV CODE
+    double exp = GetExposure();
+    if (sequenceRunning_ && IsCapturing())
+    {
+        exp = GetSequenceExposure();
+    }
+
+    {
+        std::ostringstream oss;
+        oss << "DEV: Retrieved Exposure: " << exp << "\n";
+        LogMessage(oss.str().c_str());
+    }
+
+    if (processImageInSDK)
+    {
+        McammSetCameraBuffering(0, false);
+        McammSetColorMatrixOptimizationMode(0, mcammAllPipelineStage);
+    }
+    else
+    {
+        McammSetColorMatrixOptimizationMode(0, mcammNoOptimization);
+    }
+
+    McammSetExposure(0, static_cast<long>(exp * 1000)); // 50000 equals 50 ms
+
+    long imageSize = 0;
+    McammGetMaxImageDataSize(0, &imageSize);
+    {
+        std::ostringstream oss;
+        oss << "DEV: Retrieved Image Size: " << imageSize << "\n";
+        LogMessage(oss.str().c_str());
+    }
+    
+    //if (IsCapturing())
+    //    StopSequenceAcquisition();
+    if (IsCapturing())
+    {
+        LogMessage("DEV: DEVICE_CAMERA_BUSY_ACQUIRING");
+        return DEVICE_CAMERA_BUSY_ACQUIRING;
+    }
+
+    ImageBufferWithHeader[0] = (unsigned short*)malloc(imageSize);
+    ImageBufferWithHeader[1] = (unsigned short*)malloc(imageSize);
+    processedImage = (unsigned short*)malloc(imageSize);
+
+    imageNumber[0] = -1;
+    imageNumber[1] = -1;
+
+    long error = McammGetIPInfo(0, &pContext, &contextSize, &LiveCallback, &pimageByteSize);
+    error = McammStartContinuousAcquisition(0, 15, NULL);
+
+    // END OF ZEISS SPECIFIC DEV CODE
 }
 
 /**                                                                       
@@ -1156,7 +1311,7 @@ void XZellZeissCamera::OnThreadExiting() throw()
 }
 
 
-MySequenceThread::MySequenceThread(XZellZeissCamera* pCam)
+ZeissAcquisitionThread::ZeissAcquisitionThread(XZellZeissCamera* pCam)
    :intervalMs_(default_intervalMS)
    ,numImages_(default_numImages)
    ,imageCounter_(0)
@@ -1168,14 +1323,14 @@ MySequenceThread::MySequenceThread(XZellZeissCamera* pCam)
    ,lastFrameTime_(0)
 {};
 
-MySequenceThread::~MySequenceThread() {};
+ZeissAcquisitionThread::~ZeissAcquisitionThread() {};
 
-void MySequenceThread::Stop() {
+void ZeissAcquisitionThread::Stop() {
    MMThreadGuard g(this->stopLock_);
    stop_=true;
 }
 
-void MySequenceThread::Start(long numImages, double intervalMs)
+void ZeissAcquisitionThread::Start(long numImages, double intervalMs)
 {
    MMThreadGuard g1(this->stopLock_);
    MMThreadGuard g2(this->suspendLock_);
@@ -1190,27 +1345,27 @@ void MySequenceThread::Start(long numImages, double intervalMs)
    lastFrameTime_ = MM::MMTime{};
 }
 
-bool MySequenceThread::IsStopped(){
+bool ZeissAcquisitionThread::IsStopped(){
    MMThreadGuard g(this->stopLock_);
    return stop_;
 }
 
-void MySequenceThread::Suspend() {
+void ZeissAcquisitionThread::Suspend() {
    MMThreadGuard g(this->suspendLock_);
    suspend_ = true;
 }
 
-bool MySequenceThread::IsSuspended() {
+bool ZeissAcquisitionThread::IsSuspended() {
    MMThreadGuard g(this->suspendLock_);
    return suspend_;
 }
 
-void MySequenceThread::Resume() {
+void ZeissAcquisitionThread::Resume() {
    MMThreadGuard g(this->suspendLock_);
    suspend_ = false;
 }
 
-int MySequenceThread::svc(void) throw()
+int ZeissAcquisitionThread::svc(void) throw()
 {
    int ret=DEVICE_ERR;
    try 

@@ -103,7 +103,7 @@ private:
 // Simulation of the Camera device
 //////////////////////////////////////////////////////////////////////////////
 
-class MySequenceThread;
+class ZeissAcquisitionThread;
 
 class XZellZeissCamera : public CCameraBase<XZellZeissCamera>  
 {
@@ -249,9 +249,9 @@ private:
    std::string asyncFollower_;
    MMThreadLock imgPixelsLock_;
    MMThreadLock asyncFollowerLock_;
-   friend class MySequenceThread;
+   friend class ZeissAcquisitionThread;
    int nComponents_;
-   MySequenceThread * thd_;
+   ZeissAcquisitionThread * thd_;
    std::future<void> fut_;
    int mode_;
    ImgManipulator* imgManpl_;
@@ -264,13 +264,14 @@ private:
    // END OF ZEISS SPECIFIC DEV CODE
 };
 
-class MySequenceThread : public MMDeviceThreadBase
+//class MySequenceThread : public MMDeviceThreadBase
+class ZeissAcquisitionThread : public MMDeviceThreadBase
 {
-   friend class CDemoCamera;
+   friend class XZellZeissCamera;
    enum { default_numImages=1, default_intervalMS = 100 };
    public:
-      MySequenceThread(XZellZeissCamera* pCam);
-      ~MySequenceThread();
+      ZeissAcquisitionThread(XZellZeissCamera* pCam);
+      ~ZeissAcquisitionThread();
       void Stop();
       void Start(long numImages, double intervalMs);
       bool IsStopped();
