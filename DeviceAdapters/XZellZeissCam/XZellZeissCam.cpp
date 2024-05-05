@@ -1113,60 +1113,7 @@ BOOL LiveCallback(unsigned short* img, long bytesize, long currbufnr, LONGLONG F
 int XZellZeissCamera::StartSequenceAcquisition(double interval)
 {
     LogMessage("ZEISS API METHOD ENTRY: StartSequenceAcquisition(interval)");
-   //return StartSequenceAcquisition(LONG_MAX, interval, false);
-
-    // START OF ZEISS SPECIFIC DEV CODE
-    double exp = GetExposure();
-    if (sequenceRunning_ && IsCapturing())
-    {
-        exp = GetSequenceExposure();
-    }
-
-    {
-        std::ostringstream oss;
-        oss << "DEV: Retrieved Exposure: " << exp << "\n";
-        LogMessage(oss.str().c_str());
-    }
-
-    if (processImageInSDK)
-    {
-        McammSetCameraBuffering(0, false);
-        McammSetColorMatrixOptimizationMode(0, mcammAllPipelineStage);
-    }
-    else
-    {
-        McammSetColorMatrixOptimizationMode(0, mcammNoOptimization);
-    }
-
-    McammSetExposure(0, static_cast<long>(exp * 1000)); // 50000 equals 50 ms
-
-    long imageSize = 0;
-    McammGetMaxImageDataSize(0, &imageSize);
-    {
-        std::ostringstream oss;
-        oss << "DEV: Retrieved Image Size: " << imageSize << "\n";
-        LogMessage(oss.str().c_str());
-    }
-    
-    //if (IsCapturing())
-    //    StopSequenceAcquisition();
-    if (IsCapturing())
-    {
-        LogMessage("DEV: DEVICE_CAMERA_BUSY_ACQUIRING");
-        return DEVICE_CAMERA_BUSY_ACQUIRING;
-    }
-
-    ImageBufferWithHeader[0] = (unsigned short*)malloc(imageSize);
-    ImageBufferWithHeader[1] = (unsigned short*)malloc(imageSize);
-    processedImage = (unsigned short*)malloc(imageSize);
-
-    imageNumber[0] = -1;
-    imageNumber[1] = -1;
-
-    long error = McammGetIPInfo(0, &pContext, &contextSize, &LiveCallback, &pimageByteSize);
-    error = McammStartContinuousAcquisition(0, 15, NULL);
-
-    // END OF ZEISS SPECIFIC DEV CODE
+   return StartSequenceAcquisition(LONG_MAX, interval, false);
 }
 
 /**                                                                       
@@ -1175,10 +1122,22 @@ int XZellZeissCamera::StartSequenceAcquisition(double interval)
 int XZellZeissCamera::StopSequenceAcquisition()                                     
 {
     LogMessage("ZEISS API METHOD ENTRY: StopSequenceAcquisition");
+
+
+    // START OF ZEISS SPECIFIC DEV CODE
+    error = McammStopContinuousAcquisition(0);
+    // END OF ZEISS SPECIFIC DEV CODE   
+
    if (!thd_->IsStopped()) {
       thd_->Stop();                                                       
       thd_->wait();                                                       
-   }                                                                      
+   }
+
+    // START OF ZEISS SPECIFIC DEV CODE
+    free(ImageBufferWithHeader[0]);
+    free(ImageBufferWithHeader[1]);
+    free(processedImage);
+    // END OF ZEISS SPECIFIC DEV CODE                                                                      
                                                                           
    return DEVICE_OK;                                                      
 } 
@@ -1199,6 +1158,7 @@ int XZellZeissCamera::StartSequenceAcquisition(long numImages, double interval_m
       return ret;
    sequenceStartTime_ = GetCurrentMMTime();
    imageCounter_ = 0;
+   LogMessage("ZEISS API: StartSequenceAcquisition calling thd_->Start");
    thd_->Start(numImages,interval_ms);
    stopOnOverflow_ = stopOnOverflow;
    return DEVICE_OK;
@@ -1228,9 +1188,7 @@ int XZellZeissCamera::InsertImage()
 
    MMThreadGuard g(imgPixelsLock_);
 
-   const unsigned char* pI;
-   pI = GetImageBuffer();
-
+   const unsigned char* pI = GetImageBuffer();
    unsigned int w = GetImageWidth();
    unsigned int h = GetImageHeight();
    unsigned int b = GetImageBytesPerPixel();
@@ -1289,6 +1247,21 @@ int XZellZeissCamera::RunSequenceOnThread()
    return ret;
 };
 
+// START OF ZEISS SPECIFIC DEV CODE
+int XZellZeissCamera::CaptureImage(void)
+{
+    int ret = DEVICE_ERR;
+
+    ret = SnapImage();
+    if (ret != DEVICE_OK)
+    {
+        return ret;
+    }
+
+    ret = InsertImage();
+    return ret;
+};
+// END OF ZEISS SPECIFIC DEV CODE
 bool XZellZeissCamera::IsCapturing() {
     LogMessage("ZEISS API METHOD ENTRY: IsCapturing");
    return !thd_->IsStopped();
@@ -1339,6 +1312,7 @@ void ZeissAcquisitionThread::Start(long numImages, double intervalMs)
    imageCounter_=0;
    stop_ = false;
    suspend_=false;
+   camera_->LogMessage("ZEISS API: ZeissAcquisitionThread::Start calling activate");
    activate();
    actualDuration_ = MM::MMTime{};
    startTime_= camera_->GetCurrentMMTime();
@@ -1372,7 +1346,7 @@ int ZeissAcquisitionThread::svc(void) throw()
    {
       do
       {  
-         ret = camera_->RunSequenceOnThread();
+         ret = camera_->CaptureImage();
       } while (DEVICE_OK == ret && !IsStopped() && imageCounter_++ < numImages_-1);
       if (IsStopped())
          camera_->LogMessage("SeqAcquisition interrupted by the user\n");
