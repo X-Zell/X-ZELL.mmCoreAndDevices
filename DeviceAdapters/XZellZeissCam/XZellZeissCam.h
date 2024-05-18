@@ -189,6 +189,7 @@ public:
    double GaussDistributedValue(double mean, double std);
 
    int RegisterImgManipulatorCallBack(ImgManipulator* imgManpl);
+   int MoveImageToCircularBuffer();
    int CaptureImage();
    long GetCCDXSize() { return cameraCCDXSize_; }
    long GetCCDYSize() { return cameraCCDYSize_; }

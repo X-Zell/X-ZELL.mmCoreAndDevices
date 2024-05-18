@@ -1553,18 +1553,26 @@ protected:
    virtual int ThreadRun (void)
    {
       int ret=DEVICE_ERR;
+
+      LogMessage("API BASE: ThreadRun calling SnapImage");
       ret = SnapImage();
       if (ret != DEVICE_OK)
       {
          return ret;
       }
+      LogMessage("API BASE: ThreadRun calling InsertImage");
       ret = InsertImage();
       if (ret != DEVICE_OK)
       {
          return ret;
       }
+      {
+      	std::ostringstream oss;
+      	oss << "API BASE: ThreadRun complete with error code " << "\n";
+        LogMessage(oss.str().c_str());
+      }
       return ret;
-   };
+   }
 
    virtual int InsertImage()
    {

@@ -72,6 +72,12 @@ std::mutex bufferMutex[2];
 unsigned int imageCount = 0;
 
 bool processImageInSDK = true;
+
+// CONDITION VARIABLE IMPLEMENTATION START
+std::condition_variable cv;
+std::mutex mtx;
+bool newImageAvailable = false;
+// CONDITION VARIABLE IMPLEMENTATION END
 // END OF ZEISS SPECIFIC DEV CODE
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -642,24 +648,6 @@ int XZellZeissCamera::Shutdown()
    return DEVICE_OK;
 }
 
-BOOL SnapImageProgress(long done, long total, eMcamStatus Status, void* UserParam)
-{
-    XZellZeissCamera* camera = static_cast<XZellZeissCamera*>(UserParam);
-    camera->LogMessage("ZEISS API METHOD ENTRY: SnapImageProgress");
-    std::ostringstream oss;
-    if (Status == mcamStatusStarted)
-    {
-    	oss << "DEV: Status (eMcamStatus) is mcamStatusStarted\n";
-	}
-	else if (Status == mcamStatusReadout)
-	{
-        oss << "DEV: Status (eMcamStatus) is mcamStatusReadout\n";
-	}
-    int process = round(100 * done / total);
-    oss << "DEV: Acquisition status: " << process << " percent completed\n";
-    camera->LogMessage(oss.str().c_str());
-    //printf("Acquisition status: %d percent completed", process);
-}
 
 int XZellZeissCamera::SnapImage()
 {
@@ -1099,6 +1087,15 @@ BOOL LiveCallback(unsigned short* img, long bytesize, long currbufnr, LONGLONG F
         imageNumber[lockNumber] = imageCount;
 
         bufferMutex[lockNumber].unlock();
+
+        // CONDITION VARIABLE IMPLEMENTATION START
+        // Notify the main loop that a new image is available
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            newImageAvailable = true;
+        }
+        cv.notify_one();  // Notify the main loop
+        // CONDITION VARIABLE IMPLEMENTATION END
     }
 
     return true;
@@ -1116,32 +1113,6 @@ int XZellZeissCamera::StartSequenceAcquisition(double interval)
    return StartSequenceAcquisition(LONG_MAX, interval, false);
 }
 
-/**                                                                       
-* Stop and wait for the Sequence thread finished                                   
-*/                                                                        
-int XZellZeissCamera::StopSequenceAcquisition()                                     
-{
-    LogMessage("ZEISS API METHOD ENTRY: StopSequenceAcquisition");
-
-
-    // START OF ZEISS SPECIFIC DEV CODE
-    error = McammStopContinuousAcquisition(0);
-    // END OF ZEISS SPECIFIC DEV CODE   
-
-   if (!thd_->IsStopped()) {
-      thd_->Stop();                                                       
-      thd_->wait();                                                       
-   }
-
-    // START OF ZEISS SPECIFIC DEV CODE
-    free(ImageBufferWithHeader[0]);
-    free(ImageBufferWithHeader[1]);
-    free(processedImage);
-    // END OF ZEISS SPECIFIC DEV CODE                                                                      
-                                                                          
-   return DEVICE_OK;                                                      
-} 
-
 /**
 * Simple implementation of Sequence Acquisition
 * A sequence acquisition should run on its own thread and transport new images
@@ -1158,11 +1129,91 @@ int XZellZeissCamera::StartSequenceAcquisition(long numImages, double interval_m
       return ret;
    sequenceStartTime_ = GetCurrentMMTime();
    imageCounter_ = 0;
+
+   // START OF ZEISS SPECIFIC DEV CODE
+   double exp = GetExposure();
+   if (processImageInSDK)
+   {
+       McammSetCameraBuffering(0, false);
+       McammSetColorMatrixOptimizationMode(0, mcammAllPipelineStage);
+   }
+   else
+   {
+       McammSetColorMatrixOptimizationMode(0, mcammNoOptimization);
+   }
+
+   McammSetExposure(0, static_cast<long>(exp * 1000)); // 50000 equals 50 ms
+
+   long imageSize = 0;
+   McammGetMaxImageDataSize(0, &imageSize);
+   {
+       std::ostringstream oss;
+       oss << "DEV: Retrieved Image Size: " << imageSize << "\n";
+       LogMessage(oss.str().c_str());
+   }
+
+   ImageBufferWithHeader[0] = (unsigned short*)malloc(imageSize);
+   ImageBufferWithHeader[1] = (unsigned short*)malloc(imageSize);
+   processedImage = (unsigned short*)malloc(imageSize);
+
+   imageNumber[0] = -1;
+   imageNumber[1] = -1;
+
+   long error = McammGetIPInfo(0, &pContext, &contextSize, &LiveCallback, &pimageByteSize);
+   {
+       std::ostringstream oss;
+       oss << "DEV: McammGetIPInfo called with Error Code " << error << "\n";
+       LogMessage(oss.str().c_str());
+   }
+   {
+       std::ostringstream oss;
+       oss << "DEV: Context Data: " << pContext << "\n";
+       LogMessage(oss.str().c_str());
+   }
+   {
+       std::ostringstream oss;
+       oss << "DEV: Context Size: " << contextSize << "\n";
+       LogMessage(oss.str().c_str());
+   }
+   {
+       std::ostringstream oss;
+       oss << "DEV: Image Byte Size: " << pimageByteSize << "\n";
+       LogMessage(oss.str().c_str());
+   }
+   error = McammStartContinuousAcquisition(0, 15, NULL);
+   // END OF ZEISS SPECIFIC DEV CODE  
+
    LogMessage("ZEISS API: StartSequenceAcquisition calling thd_->Start");
    thd_->Start(numImages,interval_ms);
    stopOnOverflow_ = stopOnOverflow;
    return DEVICE_OK;
 }
+
+/**                                                                       
+* Stop and wait for the Sequence thread finished                                   
+*/                                                                        
+int XZellZeissCamera::StopSequenceAcquisition()                                     
+{
+    LogMessage("ZEISS API METHOD ENTRY: StopSequenceAcquisition");
+
+
+    // START OF ZEISS SPECIFIC DEV CODE
+    error = McammStopContinuousAcquisition(0);
+    // END OF ZEISS SPECIFIC DEV CODE   
+
+   if (!thd_->IsStopped()) {
+      thd_->Stop();                                                       
+      //thd_->wait();                                                       
+   }
+
+    // START OF ZEISS SPECIFIC DEV CODE
+    free(ImageBufferWithHeader[0]);
+    free(ImageBufferWithHeader[1]);
+    free(processedImage);
+    // END OF ZEISS SPECIFIC DEV CODE                                                                      
+                                                                          
+   return DEVICE_OK;                                                      
+} 
 
 /*
  * Inserts Image and MetaData into MMCore circular Buffer
@@ -1250,6 +1301,7 @@ int XZellZeissCamera::RunSequenceOnThread()
 // START OF ZEISS SPECIFIC DEV CODE
 int XZellZeissCamera::CaptureImage(void)
 {
+    LogMessage("ZEISS API METHOD ENTRY: CaptureImage");
     int ret = DEVICE_ERR;
 
     ret = SnapImage();
@@ -1262,6 +1314,155 @@ int XZellZeissCamera::CaptureImage(void)
     return ret;
 };
 // END OF ZEISS SPECIFIC DEV CODE
+
+// START OF ZEISS SPECIFIC DEV CODE
+int XZellZeissCamera::MoveImageToCircularBuffer()
+{
+    LogMessage("ZEISS API METHOD ENTRY: MoveImageToCircularBuffer");
+
+    // START OF SPINNAKER STYLE CODE
+    if (!IsCapturing())
+    {
+        LogMessage("DEV: Camera is not capturing! Cannot retrieve image!");
+        //SetErrorText(SPKR_ERROR, "Camera is not capturing! Cannot retrieve image!");
+        return DEVICE_ERR;
+    }
+
+    //SPKR::ImagePtr ip =
+    //    this->GetNextImage((int)this->GetExposure() + 1000);
+    // END OF SPINNAKER STYLE CODE
+
+    // START OF ZEISS SPECIFIC DEV CODE
+    double exp = GetExposure();
+    if (sequenceRunning_ && IsCapturing())
+    {
+        exp = GetSequenceExposure();
+    }
+
+    {
+        std::ostringstream oss;
+        oss << "DEV: Retrieved Exposure: " << exp << "\n";
+        LogMessage(oss.str().c_str());
+    }
+    MMThreadGuard g(imgPixelsLock_);
+
+    
+    // CONDITION VARIABLE IMPLEMENTATION START
+    std::unique_lock<std::mutex> lock(mtx);
+    cv.wait(lock, [] { return newImageAvailable; });  // Wait for a new image
+    // CONDITION VARIABLE IMPLEMENTATION END
+
+    int lockNum = -1;
+    unsigned short* bufferWithHeader = NULL;
+    bool newImage = false;
+
+    for (int k = 0; k < 2; k++) {
+
+        {
+            std::ostringstream oss;
+            oss << "DEV: XZellZeissCamera::MoveImageToCircularBuffer k loop, k: " << k << "\n";
+            LogMessage(oss.str().c_str());
+        }
+        lockNum++;
+        {
+            std::ostringstream oss;
+            oss << "DEV: XZellZeissCamera::MoveImageToCircularBuffer - imageNumber[lockNum]: " << imageNumber[lockNum] << "\n";
+            oss << "DEV: XZellZeissCamera::MoveImageToCircularBuffer - lastImageRead: " << lastImageRead << "\n";
+            LogMessage(oss.str().c_str());
+        }
+        if (imageNumber[lockNum] > lastImageRead) {
+            LogMessage("DEV: XZellZeissCamera::MoveImageToCircularBuffer -  imageNumber[lockNum] > lastImageRead");
+            bool locked = bufferMutex[lockNum].try_lock();
+
+            if (locked)
+            {
+                LogMessage("DEV: XZellZeissCamera::MoveImageToCircularBuffer locked -  bufferWithHeader = ImageBufferWithHeader[lockNum]");
+                {
+                    std::ostringstream oss;
+                    oss << "DEV: XZellZeissCamera::MoveImageToCircularBuffer lockNum: " << lockNum << "\n";
+                    LogMessage(oss.str().c_str());
+                }
+                bufferWithHeader = ImageBufferWithHeader[lockNum];
+                lastImageRead = imageNumber[lockNum];
+                newImage = true;
+                // CONDITION VARIABLE IMPLEMENTATION START
+                bufferMutex[lockNum].unlock();  // Unlock after accessing the buffer
+                // CONDITION VARIABLE IMPLEMENTATION END
+                break;
+            }
+        }
+    }
+
+    {
+        std::ostringstream oss;
+        oss << "DEV: XZellZeissCamera::MoveImageToCircularBuffer - newImage: " << newImage << "\n";
+        LogMessage(oss.str().c_str());
+    }
+
+    // CONDITION VARIABLE IMPLEMENTATION START
+    newImageAvailable = false;  // Reset the flag
+    // CONDITION VARIABLE IMPLEMENTATION END
+
+    if (newImage)
+    {
+        if (!processImageInSDK)
+        {
+            error = McammExecuteIPFunction(pContext, processedImage, bufferWithHeader);
+            bufferWithHeader = processedImage;
+        }
+
+        IMAGE_HEADER* imageHeader = (IMAGE_HEADER*)bufferWithHeader;
+        unsigned short* pixelData = bufferWithHeader + imageHeader->headerSize;
+        unsigned short pixelValue1 = pixelData[0];
+        unsigned short pixelValue2 = pixelData[1];
+        unsigned short pixelValue3 = pixelData[2];
+
+        {
+            std::ostringstream oss;
+            oss << "DEV:pixels data = " << imageCount << ": " << pixelValue1 << " - " << pixelValue2 << " - " << pixelValue3;
+            LogMessage(oss.str().c_str());
+	        
+        }
+
+        //bufferMutex[lockNum].unlock();
+
+		// TODO HOW DOES THE ABOVE ZEISS EXAMPLE CODE COMBINE WITH THE INSERTIMAGE CODE BELOW?
+
+		const unsigned char* imgBuf = reinterpret_cast<const unsigned char*>(pixelData);
+        memcpy(img_.GetPixelsRW(),
+            imgBuf,
+            img_.Width() * img_.Height() * img_.Depth());
+        
+	    //const unsigned char* imgBuf = GetImageBuffer();
+	    unsigned int w = GetImageWidth();
+	    unsigned int h = GetImageHeight();
+	    unsigned int b = GetImageBytesPerPixel();
+
+	    int ret = GetCoreCallback()->InsertImage(this, imgBuf, w, h, b);
+	    //int ret = GetCoreCallback()->InsertImage(this, imgBuf, w, h, b, md.Serialize().c_str());
+
+	    if (!stopOnOverflow_ && ret == DEVICE_BUFFER_OVERFLOW)
+	    {
+	        // do not stop on overflow - just reset the buffer
+	        GetCoreCallback()->ClearImageBuffer(this);
+	        // don't process this same image again...
+	        ret = GetCoreCallback()->InsertImage(this, imgBuf, w, h, b);
+	        //ret = GetCoreCallback()->InsertImage(this, imgBuf, w, h, b, md.Serialize().c_str(), false);
+	    }
+	    if (ret == DEVICE_OK)
+	        imageCounter_++;
+        return ret;
+    }
+
+
+    return DEVICE_CAMERA_BUSY_ACQUIRING;// TODO: how to better deal with this
+
+    //// END OF ZEISS SPECIFIC DEV CODE
+
+    return DEVICE_OK;
+}
+//// END OF ZEISS SPECIFIC DEV CODE
+
 bool XZellZeissCamera::IsCapturing() {
     LogMessage("ZEISS API METHOD ENTRY: IsCapturing");
    return !thd_->IsStopped();
@@ -1272,6 +1473,7 @@ bool XZellZeissCamera::IsCapturing() {
  */
 void XZellZeissCamera::OnThreadExiting() throw()
 {
+    LogMessage("ZEISS INNER METHOD ENTRY: OnThreadExiting");
    try
    {
       LogMessage(g_Msg_SEQUENCE_ACQUISITION_THREAD_EXITING);
@@ -1341,12 +1543,15 @@ void ZeissAcquisitionThread::Resume() {
 
 int ZeissAcquisitionThread::svc(void) throw()
 {
+    camera_->LogMessage("ZEISS INNER METHOD ENTRY: svc");
    int ret=DEVICE_ERR;
    try 
    {
       do
-      {  
-         ret = camera_->CaptureImage();
+      {
+          camera_->LogMessage("DEV: ZeissAcquisitionThread::svc do / while loop\n");
+         //ret = camera_->CaptureImage();
+         ret = camera_->MoveImageToCircularBuffer();
       } while (DEVICE_OK == ret && !IsStopped() && imageCounter_++ < numImages_-1);
       if (IsStopped())
          camera_->LogMessage("SeqAcquisition interrupted by the user\n");
@@ -2571,6 +2776,7 @@ int XZellZeissCamera::RegisterImgManipulatorCallBack(ImgManipulator* imgManpl)
    imgManpl_ = imgManpl;
    return DEVICE_OK;
 }
+
 
 ////////// BEGINNING OF POORLY ORGANIZED CODE //////////////
 //////////  CLEANUP NEEDED ////////////////////////////
