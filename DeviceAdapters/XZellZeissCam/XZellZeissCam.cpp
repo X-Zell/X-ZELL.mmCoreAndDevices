@@ -145,7 +145,6 @@ XZellZeissCamera::XZellZeissCamera() :
 	cameraCCDXSize_(2464),
 	cameraCCDYSize_(2056),
    ccdT_ (0.0),
-   triggerDevice_(""),
    stopOnOverflow_(false),
 	dropPixels_(false),
    fastImage_(false),
@@ -540,10 +539,6 @@ int XZellZeissCamera::Initialize()
    CreateIntegerProperty("OnCameraCCDXSize", 512, false, pAct);
    pAct = new CPropertyAction (this, &XZellZeissCamera::OnCameraCCDYSize);
    CreateIntegerProperty("OnCameraCCDYSize", 512, false, pAct);
-
-   // Trigger device
-   pAct = new CPropertyAction (this, &XZellZeissCamera::OnTriggerDevice);
-   CreateStringProperty("TriggerDevice", "", false, pAct);
 
    pAct = new CPropertyAction (this, &XZellZeissCamera::OnDropPixels);
    CreateIntegerProperty("DropPixels", 0, false, pAct);
@@ -1293,17 +1288,9 @@ int XZellZeissCamera::InsertImage()
  */
 int XZellZeissCamera::RunSequenceOnThread()
 {
+	LogMessage("ZEISS INNER METHOD ENTRY: RunSequenceOnThread");
    int ret=DEVICE_ERR;
    MM::MMTime startTime = GetCurrentMMTime();
-   
-   // Trigger
-   if (triggerDevice_.length() > 0) {
-      MM::Device* triggerDev = GetDevice(triggerDevice_.c_str());
-      if (triggerDev != 0) {
-      	LogMessage("trigger requested");
-      	triggerDev->SetProperty("Trigger","+");
-      }
-   }
 
    double exposure = GetSequenceExposure();
 
@@ -2116,19 +2103,6 @@ int XZellZeissCamera::OnCameraCCDYSize(MM::PropertyBase* pProp, MM::ActionType e
    }
 	return DEVICE_OK;
 
-}
-
-int XZellZeissCamera::OnTriggerDevice(MM::PropertyBase* pProp, MM::ActionType eAct)
-{
-   if (eAct == MM::BeforeGet)
-   {
-      pProp->Set(triggerDevice_.c_str());
-   }
-   else if (eAct == MM::AfterSet)
-   {
-      pProp->Get(triggerDevice_);
-   }
-   return DEVICE_OK;
 }
 
 
