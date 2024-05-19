@@ -228,6 +228,7 @@ int XZellZeissCamera::Initialize()
    eMcamScanMode scanMode;
    MCammLineFlickerSuppressionMode lineFlickerSuppressionMode;
    long bitsPerPixel = 0;
+   BOOL hasBits = false;
    MCammColorMatrixOptimizationMode colorMatrixMode;
    //unsigned short* ImageBufferWithHeader = NULL;
    //long imageSize = 0;
@@ -292,12 +293,22 @@ int XZellZeissCamera::Initialize()
             oss << "DEV: Number of Resolutions: " << numberOfResolutions << "\n";
             LogMessage(oss.str().c_str());
         }
+        result = McammGetResolutionValues(0, 0, &resolutionWidth, &resolutionHeight, &scanMode);
+        if (result == 0)
+        {
+            std::ostringstream oss;
+            oss << "DEV: Resolution 0 Width: " << resolutionWidth << "\n";
+            oss << "DEV: Resolution 0 Height: " << resolutionHeight << "\n";
+            oss << "DEV: Resolution 0 ScanMode: " << scanMode << "\n";
+            LogMessage(oss.str().c_str());
+        }
         result = McammGetResolutionValues(0, 1, &resolutionWidth, &resolutionHeight, &scanMode);
         if (result == 0)
         {
             std::ostringstream oss;
             oss << "DEV: Resolution 1 Width: " << resolutionWidth << "\n";
             oss << "DEV: Resolution 1 Height: " << resolutionHeight << "\n";
+            oss << "DEV: Resolution 1 ScanMode: " << scanMode << "\n";
             LogMessage(oss.str().c_str());
         }
         result = McammGetResolutionValues(0, 2, &resolutionWidth, &resolutionHeight, &scanMode);
@@ -306,14 +317,7 @@ int XZellZeissCamera::Initialize()
             std::ostringstream oss;
             oss << "DEV: Resolution 2 Width: " << resolutionWidth << "\n";
             oss << "DEV: Resolution 2 Height: " << resolutionHeight << "\n";
-            LogMessage(oss.str().c_str());
-        }
-        result = McammGetResolutionValues(0, 0, &resolutionWidth, &resolutionHeight, &scanMode);
-        if (result == 0)
-        {
-            std::ostringstream oss;
-            oss << "DEV: Resolution 0 Width: " << resolutionWidth << "\n";
-            oss << "DEV: Resolution 0 Height: " << resolutionHeight << "\n";
+            oss << "DEV: Resolution 2 ScanMode: " << scanMode << "\n";
             LogMessage(oss.str().c_str());
         }
         result = McammGetLineFlickerSuppressionMode(0, &lineFlickerSuppressionMode);
@@ -335,6 +339,30 @@ int XZellZeissCamera::Initialize()
             oss << "DEV: Line Flicker Suppression Mode: " << lineFlickerSuppressionModeValue << "\n";
             LogMessage(oss.str().c_str());
         }
+        result = McammHasBitsPerPixel(0, 8, &hasBits);
+        {
+            std::ostringstream oss;
+            oss << "DEV: Camera has 8 bits available: " << hasBits << "\n";
+            LogMessage(oss.str().c_str());
+        }
+        result = McammHasBitsPerPixel(0, 12, &hasBits);
+        {
+            std::ostringstream oss;
+            oss << "DEV: Camera has 12 bits available: " << hasBits << "\n";
+            LogMessage(oss.str().c_str());
+        }
+        result = McammHasBitsPerPixel(0, 14, &hasBits);
+        {
+            std::ostringstream oss;
+            oss << "DEV: Camera has 14 bits available: " << hasBits << "\n";
+            LogMessage(oss.str().c_str());
+        }
+        result = McammHasBitsPerPixel(0, 16, &hasBits);
+        {
+            std::ostringstream oss;
+            oss << "DEV: Camera has 16 bits available: " << hasBits << "\n";
+            LogMessage(oss.str().c_str());
+        }
         result = McammGetCurrentBitsPerPixelEx(0, &bitsPerPixel);
         if (result == 0)
         {
@@ -343,13 +371,17 @@ int XZellZeissCamera::Initialize()
             LogMessage(oss.str().c_str());
         }
         //result = McammSetBitsPerPixel(0, 8);
-        //result = McammGetCurrentBitsPerPixelEx(0, &bitsPerPixel);
         //if (result == 0)
         //{
-        //    std::ostringstream oss;
-        //    oss << "DEV: BitsPerPixel: " << bitsPerPixel << "\n";
-        //    LogMessage(oss.str().c_str());
+        //    LogMessage("DEV: BitsPerPixel set to 8\n");
         //}
+        result = McammGetCurrentBitsPerPixelEx(0, &bitsPerPixel);
+        if (result == 0)
+        {
+            std::ostringstream oss;
+            oss << "DEV: BitsPerPixel: " << bitsPerPixel << "\n";
+            LogMessage(oss.str().c_str());
+        }
 
         result = McammGetColorMatrixOptimizationMode(0, &colorMatrixMode);
         if (result == 0)
@@ -1324,12 +1356,8 @@ int XZellZeissCamera::MoveImageToCircularBuffer()
     if (!IsCapturing())
     {
         LogMessage("DEV: Camera is not capturing! Cannot retrieve image!");
-        //SetErrorText(SPKR_ERROR, "Camera is not capturing! Cannot retrieve image!");
         return DEVICE_ERR;
     }
-
-    //SPKR::ImagePtr ip =
-    //    this->GetNextImage((int)this->GetExposure() + 1000);
     // END OF SPINNAKER STYLE CODE
 
     // START OF ZEISS SPECIFIC DEV CODE
@@ -1345,7 +1373,14 @@ int XZellZeissCamera::MoveImageToCircularBuffer()
         LogMessage(oss.str().c_str());
     }
     MMThreadGuard g(imgPixelsLock_);
-
+    
+    //if (IsCapturing())
+    //    StopSequenceAcquisition();
+    if (IsCapturing())
+    {
+        LogMessage("DEV: DEVICE_CAMERA_BUSY_ACQUIRING (IsCaputing == true)");
+        //return DEVICE_CAMERA_BUSY_ACQUIRING;
+    }
     
     // CONDITION VARIABLE IMPLEMENTATION START
     std::unique_lock<std::mutex> lock(mtx);
@@ -1416,19 +1451,20 @@ int XZellZeissCamera::MoveImageToCircularBuffer()
         unsigned short pixelValue1 = pixelData[0];
         unsigned short pixelValue2 = pixelData[1];
         unsigned short pixelValue3 = pixelData[2];
-
         {
             std::ostringstream oss;
-            oss << "DEV:pixels data = " << imageCount << ": " << pixelValue1 << " - " << pixelValue2 << " - " << pixelValue3;
+            oss << "DEV:pixels data = " << imageCount << ": " << pixelValue1 << " - " << pixelValue2 << " - " << pixelValue3 << "\n";
             LogMessage(oss.str().c_str());
 	        
         }
-
         //bufferMutex[lockNum].unlock();
 
-		// TODO HOW DOES THE ABOVE ZEISS EXAMPLE CODE COMBINE WITH THE INSERTIMAGE CODE BELOW?
-
 		const unsigned char* imgBuf = reinterpret_cast<const unsigned char*>(pixelData);
+    	{
+            std::ostringstream oss;
+            oss << "DEV: img_ dimensions = w: " << img_.Width() << ", h: " << img_.Height() << ", d: " << img_.Depth() << "\n";
+            LogMessage(oss.str().c_str());
+        }
         memcpy(img_.GetPixelsRW(),
             imgBuf,
             img_.Width() * img_.Height() * img_.Depth());
@@ -1437,6 +1473,11 @@ int XZellZeissCamera::MoveImageToCircularBuffer()
 	    unsigned int w = GetImageWidth();
 	    unsigned int h = GetImageHeight();
 	    unsigned int b = GetImageBytesPerPixel();
+        {
+            std::ostringstream oss;
+            oss << "DEV: InsertImage parameters = w: " << w << ", h: " << h << ", bytes per pixel: " << b << "\n";
+            LogMessage(oss.str().c_str());
+        }
 
 	    int ret = GetCoreCallback()->InsertImage(this, imgBuf, w, h, b);
 	    //int ret = GetCoreCallback()->InsertImage(this, imgBuf, w, h, b, md.Serialize().c_str());
@@ -1458,8 +1499,6 @@ int XZellZeissCamera::MoveImageToCircularBuffer()
     return DEVICE_CAMERA_BUSY_ACQUIRING;// TODO: how to better deal with this
 
     //// END OF ZEISS SPECIFIC DEV CODE
-
-    return DEVICE_OK;
 }
 //// END OF ZEISS SPECIFIC DEV CODE
 
