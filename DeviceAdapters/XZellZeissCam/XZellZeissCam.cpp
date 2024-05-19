@@ -43,9 +43,6 @@ const char* g_HubDeviceName = "XZellHub";
 // constants for naming pixel types (allowed values of the "PixelType" property)
 const char* g_PixelType_8bit = "8bit";
 const char* g_PixelType_16bit = "16bit";
-const char* g_PixelType_32bitRGB = "32bitRGB";
-const char* g_PixelType_64bitRGB = "64bitRGB";
-const char* g_PixelType_32bit = "32bit";  // floating point greyscale
 
 // constants for naming camera modes
 const char* g_Sine_Wave = "Artificial Waves";
@@ -1885,12 +1882,7 @@ int XZellZeissCamera::OnBitDepth(MM::PropertyBase* pProp, MM::ActionType eAct)
 					SetProperty(MM::g_Keyword_PixelType, g_PixelType_16bit);
 					bytesPerPixel = 2;
 				}
-				else if ( 4 == bytesPerComponent)
-            {
-					SetProperty(MM::g_Keyword_PixelType, g_PixelType_32bit);
-					bytesPerPixel = 4;
-
-            }else
+				else
 				{
 				   bytesPerPixel = 1;
 				}
@@ -2512,10 +2504,6 @@ void XZellZeissCamera::GenerateSyntheticImage(ImgBuffer& img, double exp)
                     else if (pixelType.compare(g_PixelType_16bit) == 0) {
                         *((unsigned short*) rawBuf + lIndex) = 0;
                     }
-                    else if (pixelType.compare(g_PixelType_32bit) == 0 ||
-                             pixelType.compare(g_PixelType_32bitRGB) == 0) {
-                        *((unsigned int*) rawBuf + lIndex) = 0;
-                    }
                 }
             }
             // Draw each segment, if appropriate.
@@ -2539,10 +2527,6 @@ void XZellZeissCamera::GenerateSyntheticImage(ImgBuffer& img, double exp)
                     }
                     else if (pixelType.compare(g_PixelType_16bit) == 0) {
                         *((unsigned short*) rawBuf + lIndex) = static_cast<unsigned short>(maxDrawnVal);
-                    }
-                    else if (pixelType.compare(g_PixelType_32bit) == 0 ||
-                             pixelType.compare(g_PixelType_32bitRGB) == 0) {
-                        *((unsigned int*) rawBuf + lIndex) = static_cast<unsigned int>(maxDrawnVal);
                     }
                 }
             }
@@ -2585,11 +2569,6 @@ void XZellZeissCamera::GenerateSyntheticImage(ImgBuffer& img, double exp)
                else if (pixelType.compare(g_PixelType_16bit) == 0)
                {
                   *((unsigned short*) rawBuf + lIndex) = static_cast<unsigned short>(multiROIFillValue_);
-               }
-               else if (pixelType.compare(g_PixelType_32bit) == 0 ||
-                        pixelType.compare(g_PixelType_32bitRGB) == 0)
-               {
-                  *((unsigned int*) rawBuf + lIndex) = static_cast<unsigned int>(multiROIFillValue_);
                }
             }
          }
