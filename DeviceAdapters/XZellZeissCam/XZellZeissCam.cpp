@@ -483,23 +483,7 @@ int XZellZeissCamera::Initialize()
          double lowerLimit = (ij%3)?-upperLimit:0.;
          SetPropertyLimits(propName.c_str(), lowerLimit, upperLimit);
       }
-	}
-
-   // Test Property with an async callback
-   // When the leader is set the follower will be set to the same value
-   // with some delay (default 2 seconds).
-   // This is to allow downstream testing of callbacks originating from
-   // device threads.
-   pAct = new CPropertyAction (this, &XZellZeissCamera::OnAsyncLeader);
-   CreateStringProperty("AsyncPropertyLeader", "init", false, pAct);
-   pAct = new CPropertyAction (this, &XZellZeissCamera::OnAsyncFollower);
-   CreateStringProperty("AsyncPropertyFollower", "init", true, pAct);
-   CreateIntegerProperty("AsyncPropertyDelayMS", 2000, false);
-
-   //pAct = new CPropertyAction(this, &XZellZeissCamera::OnSwitch);
-   //nRet = CreateIntegerProperty("Switch", 0, false, pAct);
-   //SetPropertyLimits("Switch", 8, 1004);
-	
+	}	
 	
 	// scan mode
    pAct = new CPropertyAction (this, &XZellZeissCamera::OnScanMode);
@@ -1622,42 +1606,6 @@ int XZellZeissCamera::OnTestProperty(MM::PropertyBase* pProp, MM::ActionType eAc
    }
 	return DEVICE_OK;
 
-}
-
-void XZellZeissCamera::SlowPropUpdate(std::string leaderValue)
-{
-      // wait in order to simulate a device doing something slowly
-      // in a thread
-      long delay; GetProperty("AsyncPropertyDelayMS", delay);
-      CDeviceUtils::SleepMs(delay);
-      {
-         MMThreadGuard g(asyncFollowerLock_);
-         asyncFollower_ = leaderValue;
-      }
-      OnPropertyChanged("AsyncPropertyFollower", leaderValue.c_str());
-   }
-
-int XZellZeissCamera::OnAsyncFollower(MM::PropertyBase* pProp, MM::ActionType eAct)
-{
-   if (eAct == MM::BeforeGet){
-      MMThreadGuard g(asyncFollowerLock_);
-      pProp->Set(asyncFollower_.c_str());
-   }
-   // no AfterSet as this is a readonly property
-   return DEVICE_OK;
-}
-
-int XZellZeissCamera::OnAsyncLeader(MM::PropertyBase* pProp, MM::ActionType eAct)
-{
-   if (eAct == MM::BeforeGet){
-      pProp->Set(asyncLeader_.c_str());
-   }
-   if (eAct == MM::AfterSet)
-   {
-      pProp->Get(asyncLeader_);
-      fut_ = std::async(std::launch::async, &XZellZeissCamera::SlowPropUpdate, this, asyncLeader_);
-   }
-	return DEVICE_OK;
 }
 
 /**

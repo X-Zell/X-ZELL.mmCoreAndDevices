@@ -245,10 +245,7 @@ private:
    std::vector<unsigned> multiROIHeights_;
 
 	double testProperty_[10];
-   std::string asyncLeader_;
-   std::string asyncFollower_;
    MMThreadLock imgPixelsLock_;
-   MMThreadLock asyncFollowerLock_;
    friend class ZeissAcquisitionThread;
    int nComponents_;
    ZeissAcquisitionThread * thd_;
