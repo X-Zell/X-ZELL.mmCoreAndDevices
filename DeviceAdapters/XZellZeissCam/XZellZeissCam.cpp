@@ -476,17 +476,6 @@ int XZellZeissCamera::Initialize()
    nRet = CreateIntegerProperty(MM::g_Keyword_Offset, 0, false);
    assert(nRet == DEVICE_OK);
 
-   // camera temperature
-   pAct = new CPropertyAction (this, &XZellZeissCamera::OnCCDTemp);
-   nRet = CreateFloatProperty(MM::g_Keyword_CCDTemperature, 0, false, pAct);
-   assert(nRet == DEVICE_OK);
-   SetPropertyLimits(MM::g_Keyword_CCDTemperature, -100, 10);
-
-   // camera temperature RO
-   pAct = new CPropertyAction (this, &XZellZeissCamera::OnCCDTemp);
-   nRet = CreateFloatProperty("CCDTemperature RO", 0, true, pAct);
-   assert(nRet == DEVICE_OK);
-
    // readout time
    pAct = new CPropertyAction (this, &XZellZeissCamera::OnReadoutTime);
    nRet = CreateFloatProperty(MM::g_Keyword_ReadoutTime, 0, false, pAct);
@@ -1981,20 +1970,6 @@ int XZellZeissCamera::OnCameraCCDYSize(MM::PropertyBase* pProp, MM::ActionType e
    }
 	return DEVICE_OK;
 
-}
-
-
-int XZellZeissCamera::OnCCDTemp(MM::PropertyBase* pProp, MM::ActionType eAct)
-{
-   if (eAct == MM::BeforeGet)
-   {
-      pProp->Set(ccdT_);
-   }
-   else if (eAct == MM::AfterSet)
-   {
-      pProp->Get(ccdT_);
-   }
-   return DEVICE_OK;
 }
 
 int XZellZeissCamera::OnIsSequenceable(MM::PropertyBase* pProp, MM::ActionType eAct)
