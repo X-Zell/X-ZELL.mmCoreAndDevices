@@ -153,7 +153,6 @@ public:
    // action interface
    // ----------------
    int OnMaxExposure(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnTestProperty(MM::PropertyBase* pProp, MM::ActionType eAct, long);
    int OnAsyncFollower(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnAsyncLeader(MM::PropertyBase* pProp, MM::ActionType eAct);
    void SlowPropUpdate(std::string leaderValue);
@@ -243,8 +242,7 @@ private:
    std::vector<unsigned> multiROIYs_;
    std::vector<unsigned> multiROIWidths_;
    std::vector<unsigned> multiROIHeights_;
-
-	double testProperty_[10];
+   
    MMThreadLock imgPixelsLock_;
    friend class ZeissAcquisitionThread;
    int nComponents_;

@@ -60,7 +60,7 @@ unsigned long pimageByteSize = 0;
 long error = 0;
 
 // Variables for Double Buffering
-unsigned short* ImageBufferWithHeader[2]; // 2 images buffer in which the ImageCllback copies the current image
+unsigned short* ImageBufferWithHeader[2]; // 2 images buffer in which the ImageCallback copies the current image
 unsigned short* processedImage;
 int imageNumber[2];
 int lastImageRead = 0;
@@ -161,8 +161,6 @@ XZellZeissCamera::XZellZeissCamera() :
    photonFlux_(50.0),
    readNoise_(2.5)
 {
-   memset(testProperty_,0,sizeof(testProperty_));
-
    // call the base class method to set-up default error codes/messages
    InitializeDefaultErrorMessages();
    readoutStartTime_ = GetCurrentMMTime();
@@ -460,25 +458,6 @@ int XZellZeissCamera::Initialize()
    nRet = CreateFloatProperty(MM::g_Keyword_Exposure, 10.0, false);
    assert(nRet == DEVICE_OK);
    SetPropertyLimits(MM::g_Keyword_Exposure, 0.0, exposureMaximum_);
-
-	CPropertyActionEx *pActX = 0;
-	// create an extended (i.e. array) properties 1 through 4
-	
-	for(int ij = 1; ij < 7;++ij)
-	{
-      std::ostringstream os;
-      os<<ij;
-      std::string propName = "TestProperty" + os.str();
-		pActX = new CPropertyActionEx(this, &XZellZeissCamera::OnTestProperty, ij);
-      nRet = CreateFloatProperty(propName.c_str(), 0., false, pActX);
-      if(0!=(ij%5))
-      {
-         // try several different limit ranges
-         double upperLimit = (double)ij*pow(10.,(double)(((ij%2)?-1:1)*ij));
-         double lowerLimit = (ij%3)?-upperLimit:0.;
-         SetPropertyLimits(propName.c_str(), lowerLimit, upperLimit);
-      }
-	}	
 	
 	// scan mode
    pAct = new CPropertyAction (this, &XZellZeissCamera::OnScanMode);
@@ -1582,25 +1561,6 @@ int XZellZeissCamera::OnMaxExposure(MM::PropertyBase* pProp, MM::ActionType eAct
       pProp->Get(exposureMaximum_);
    }
    return DEVICE_OK;
-}
-
-
-/*
-* this Read Only property will update whenever any property is modified
-*/
-
-int XZellZeissCamera::OnTestProperty(MM::PropertyBase* pProp, MM::ActionType eAct, long indexx)
-{
-   if (eAct == MM::BeforeGet)
-   {
-      pProp->Set(testProperty_[indexx]);
-   }
-   else if (eAct == MM::AfterSet)
-   {
-      pProp->Get(testProperty_[indexx]);
-   }
-	return DEVICE_OK;
-
 }
 
 /**
