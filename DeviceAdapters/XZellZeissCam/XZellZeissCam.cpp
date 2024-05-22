@@ -133,7 +133,7 @@ XZellZeissCamera::XZellZeissCamera() :
    initialized_(false),
    readoutUs_(0.0),
    scanMode_(1),
-   bitDepth_(8),
+   bitDepth_(12),
    roiX_(0),
    roiY_(0),
    sequenceStartTime_(0),
@@ -446,17 +446,12 @@ int XZellZeissCamera::Initialize()
 
    // Bit depth
    pAct = new CPropertyAction (this, &XZellZeissCamera::OnBitDepth);
-   nRet = CreateIntegerProperty("BitDepth", 8, false, pAct);
+   nRet = CreateIntegerProperty("BitDepth", 12, false, pAct);
    assert(nRet == DEVICE_OK);
 
    std::vector<std::string> bitDepths;
    bitDepths.push_back("8");
-   bitDepths.push_back("10");
-   bitDepths.push_back("11");
    bitDepths.push_back("12");
-   bitDepths.push_back("14");
-   bitDepths.push_back("16");
-   bitDepths.push_back("32");
    nRet = SetAllowedValues("BitDepth", bitDepths);
    if (nRet != DEVICE_OK)
       return nRet;
@@ -1703,16 +1698,16 @@ int XZellZeissCamera::OnPixelType(MM::PropertyBase* pProp, MM::ActionType eAct)
          {
             nComponents_ = 1;
             img_.Resize(img_.Width(), img_.Height(), 2);
-            bitDepth_ = 16;
+            bitDepth_ = 12;
             ret=DEVICE_OK;
          }
          else
          {
             // on error switch to default pixel type
             nComponents_ = 1;
-            img_.Resize(img_.Width(), img_.Height(), 1);
-            pProp->Set(g_PixelType_8bit);
-            bitDepth_ = 8;
+            img_.Resize(img_.Width(), img_.Height(), 2);
+            pProp->Set(g_PixelType_16bit);
+            bitDepth_ = 12;
             ret = ERR_UNKNOWN_MODE;
          }
       }
@@ -1730,7 +1725,7 @@ int XZellZeissCamera::OnPixelType(MM::PropertyBase* pProp, MM::ActionType eAct)
          }
 		 else
          {
-            pProp->Set(g_PixelType_8bit);
+            pProp->Set(g_PixelType_16bit);
          }
          ret = DEVICE_OK;
       } break;
@@ -1764,42 +1759,17 @@ int XZellZeissCamera::OnBitDepth(MM::PropertyBase* pProp, MM::ActionType eAct)
                bitDepth_ = 8;
                ret=DEVICE_OK;
             break;
-            case 10:
-					bytesPerComponent = 2;
-               bitDepth_ = 10;
-               ret=DEVICE_OK;
-            break;
-            case 11:
-                    bytesPerComponent = 2;
-                bitDepth_ = 11;
-                ret = DEVICE_OK;
-            break;
             case 12:
 					bytesPerComponent = 2;
                bitDepth_ = 12;
-               ret=DEVICE_OK;
-            break;
-            case 14:
-					bytesPerComponent = 2;
-               bitDepth_ = 14;
-               ret=DEVICE_OK;
-            break;
-            case 16:
-					bytesPerComponent = 2;
-               bitDepth_ = 16;
-               ret=DEVICE_OK;
-            break;
-            case 32:
-               bytesPerComponent = 4;
-               bitDepth_ = 32; 
                ret=DEVICE_OK;
             break;
             default: 
                // on error switch to default pixel type
 					bytesPerComponent = 1;
 
-               pProp->Set((long)8);
-               bitDepth_ = 8;
+               pProp->Set((long)12);
+               bitDepth_ = 12;
                ret = ERR_UNKNOWN_MODE;
             break;
          }
@@ -2321,7 +2291,7 @@ void XZellZeissCamera::GenerateSyntheticImage(ImgBuffer& img, double exp)
 
  
 
-	// for integer images: bitDepth_ is 8, 10, 12, 16 i.e. it is depth per component
+	// for integer images: bitDepth_ is 8, or 12 i.e. it is depth per component
    long maxValue = (1L << bitDepth_)-1;
 
 	long pixelsToDrop = 0;
