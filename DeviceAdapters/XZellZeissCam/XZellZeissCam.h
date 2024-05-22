@@ -153,8 +153,6 @@ public:
    // action interface
    // ----------------
    int OnMaxExposure(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnAsyncFollower(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnAsyncLeader(MM::PropertyBase* pProp, MM::ActionType eAct);
    void SlowPropUpdate(std::string leaderValue);
    int OnBinning(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnPixelType(MM::PropertyBase* pProp, MM::ActionType eAct);
@@ -172,8 +170,6 @@ public:
    int OnShouldDisplayImageNumber(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnStripeWidth(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnMultiROIFillValue(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnCCDTemp(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnIsSequenceable(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnMode(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnPCF(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnPhotonFlux(MM::PropertyBase* pProp, MM::ActionType eAct);
@@ -216,7 +212,6 @@ private:
    unsigned roiX_;
    unsigned roiY_;
    MM::MMTime sequenceStartTime_;
-   bool isSequenceable_;
    long sequenceMaxLength_;
    bool sequenceRunning_;
    unsigned long sequenceIndex_;

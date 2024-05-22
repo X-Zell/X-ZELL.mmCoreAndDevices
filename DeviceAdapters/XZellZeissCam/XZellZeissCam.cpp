@@ -137,7 +137,6 @@ XZellZeissCamera::XZellZeissCamera() :
    roiX_(0),
    roiY_(0),
    sequenceStartTime_(0),
-   isSequenceable_(false),
    sequenceMaxLength_(100),
    sequenceRunning_(false),
    sequenceIndex_(0),
@@ -524,16 +523,9 @@ int XZellZeissCamera::Initialize()
    CreateIntegerProperty("MultiROIFillValue", 0, false, pAct);
    SetPropertyLimits("MultiROIFillValue", 0, 65536);
 
-   // Whether or not to use exposure time sequencing
-   pAct = new CPropertyAction (this, &XZellZeissCamera::OnIsSequenceable);
-   std::string propName = "UseExposureSequences";
-   CreateStringProperty(propName.c_str(), "No", false, pAct);
-   AddAllowedValue(propName.c_str(), "Yes");
-   AddAllowedValue(propName.c_str(), "No");
-
    // Camera mode: 
    pAct = new CPropertyAction (this, &XZellZeissCamera::OnMode);
-   propName = "Mode";
+   std::string propName = "Mode";
    CreateStringProperty(propName.c_str(), g_Sine_Wave, false, pAct);
    AddAllowedValue(propName.c_str(), g_Sine_Wave);
    AddAllowedValue(propName.c_str(), g_Norm_Noise);
@@ -1970,30 +1962,6 @@ int XZellZeissCamera::OnCameraCCDYSize(MM::PropertyBase* pProp, MM::ActionType e
    }
 	return DEVICE_OK;
 
-}
-
-int XZellZeissCamera::OnIsSequenceable(MM::PropertyBase* pProp, MM::ActionType eAct)
-{
-   std::string val = "Yes";
-   if (eAct == MM::BeforeGet)
-   {
-      if (!isSequenceable_) 
-      {
-         val = "No";
-      }
-      pProp->Set(val.c_str());
-   }
-   else if (eAct == MM::AfterSet)
-   {
-      isSequenceable_ = false;
-      pProp->Get(val);
-      if (val == "Yes") 
-      {
-         isSequenceable_ = true;
-      }
-   }
-
-   return DEVICE_OK;
 }
 
 
