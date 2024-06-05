@@ -1221,38 +1221,6 @@ int XZellZeissCamera::InsertImage()
    }
 }
 
-/*
- * Do actual capturing
- * Called from inside the thread  
- */
-int XZellZeissCamera::RunSequenceOnThread()
-{
-	LogMessage("ZEISS INNER METHOD ENTRY: RunSequenceOnThread");
-   int ret=DEVICE_ERR;
-   MM::MMTime startTime = GetCurrentMMTime();
-
-   double exposure = GetSequenceExposure();
-
-   if (!fastImage_)
-   {
-      GenerateSyntheticImage(img_, exposure);
-   }
-
-   // Simulate exposure duration
-   while ((GetCurrentMMTime() - startTime).getMsec() < exposure)
-   {
-      CDeviceUtils::SleepMs(1);
-   }
-
-   ret = InsertImage();
-
-   if (ret != DEVICE_OK)
-   {
-      return ret;
-   }
-   return ret;
-};
-
 // START OF ZEISS SPECIFIC DEV CODE
 int XZellZeissCamera::CaptureImage(void)
 {
@@ -1288,6 +1256,17 @@ int XZellZeissCamera::MoveImageToCircularBuffer()
     if (sequenceRunning_ && IsCapturing())
     {
         exp = GetSequenceExposure();
+        LogMessage("DEV: GetSequenceExposure run because sequence flagged as running and capturing flagged");
+    } else
+    {
+        if (!sequenceRunning_)
+        {
+            LogMessage("DEV: GetSequenceExposure not run because sequence not flagged as running");
+        }
+        if (!IsCapturing())
+        {
+            LogMessage("DEV: GetSequenceExposure not run because not flagged as capturing");
+        }
     }
 
     {
