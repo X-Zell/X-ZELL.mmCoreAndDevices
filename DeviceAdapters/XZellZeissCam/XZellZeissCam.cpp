@@ -669,7 +669,8 @@ int XZellZeissCamera::SnapImage()
    if (error == 0)
    {
        IMAGE_HEADER* imageHeader = (IMAGE_HEADER*)ImageBufferWithHeader;
-       unsigned short* pixelData = ImageBufferWithHeader + imageHeader->headerSize;
+       auto adjustedHeaderSize = static_cast<unsigned short>(imageHeader->headerSize / 2);
+       unsigned short* pixelData = ImageBufferWithHeader + adjustedHeaderSize;
        unsigned short pixelValue1 = pixelData[0];
        unsigned short pixelValue2 = pixelData[1];
        unsigned short pixelValue3 = pixelData[2];
@@ -738,7 +739,7 @@ int XZellZeissCamera::SnapImage()
            LogMessage(oss.str().c_str());
        }
        
-       memcpy(img_.GetPixelsRW(), ImageBufferWithHeader, static_cast<size_t>(img_.Width()) * img_.Height() * img_.Depth());
+       memcpy(img_.GetPixelsRW(), pixelData, static_cast<size_t>(img_.Width()) * img_.Height() * img_.Depth());
 		
    }
    else
@@ -1349,7 +1350,8 @@ int XZellZeissCamera::MoveImageToCircularBuffer()
         }
 
         IMAGE_HEADER* imageHeader = (IMAGE_HEADER*)bufferWithHeader;
-        unsigned short* pixelData = bufferWithHeader + imageHeader->headerSize;
+        auto adjustedHeaderSize = static_cast<unsigned short>(imageHeader->headerSize / 2);
+        unsigned short* pixelData = bufferWithHeader + adjustedHeaderSize;
         unsigned short pixelValue1 = pixelData[0];
         unsigned short pixelValue2 = pixelData[1];
         unsigned short pixelValue3 = pixelData[2];
