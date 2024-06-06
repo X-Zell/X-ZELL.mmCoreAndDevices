@@ -873,10 +873,13 @@ long XZellZeissCamera::GetImageBufferSize() const
 int XZellZeissCamera::SetROI(unsigned x, unsigned y, unsigned xSize, unsigned ySize)
 {
     LogMessage("ZEISS API METHOD ENTRY: SetROI");
-   multiROIXs_.clear();
-   multiROIYs_.clear();
-   multiROIWidths_.clear();
-   multiROIHeights_.clear();
+    {
+        std::ostringstream oss;
+        oss << "DEV: SetROI - x:" << x << ", y:" << y << ", width:" << xSize << ", height:" << ySize << "\n";
+        LogMessage(oss.str().c_str());
+    }
+
+   int ret = DEVICE_OK;
    if (xSize == 0 && ySize == 0)
    {
       // effectively clear ROI
@@ -890,8 +893,35 @@ int XZellZeissCamera::SetROI(unsigned x, unsigned y, unsigned xSize, unsigned yS
       img_.Resize(xSize, ySize);
       roiX_ = x;
       roiY_ = y;
+      RECT rcSize;
+      unsigned bottom = y + ySize;
+      unsigned right = x + xSize;
+      rcSize.top = static_cast<long>(y);
+      rcSize.bottom = static_cast<long>(bottom);
+      rcSize.left = static_cast<long>(x);
+      rcSize.right = static_cast<long>(right);
+      long result = McammSetFrameSize(0, &rcSize);
+      if (result != MCAM_NO_ERROR) {
+          std::ostringstream oss;
+          oss << "DEV: ERROR - McammSetFrameSize failed, ret=" << result << "\n";
+          LogMessage(oss.str().c_str());
+          ret = DEVICE_ERR;
+      }
+      result = McammGetCurrentFrameSize(0, &rcSize);
+      if (result != MCAM_NO_ERROR) {
+          std::ostringstream oss;
+          oss << "DEV: ERROR - McammGetCurrentFrameSize failed, ret=" << result << "\n";
+          LogMessage(oss.str().c_str());
+          ret = DEVICE_ERR;
+      }
+      {
+          std::ostringstream oss;
+          oss << "DEV: SetROI - top:" << rcSize.top << ", bottom:" << rcSize.bottom << ", left:" << rcSize.left << ", right:" << rcSize.right << "\n";
+          LogMessage(oss.str().c_str());
+      }
+      printf("Resulting ROI=%ld x %ld\n", rcSize.right, rcSize.bottom);
    }
-   return DEVICE_OK;
+   return ret;
 }
 
 /**
@@ -902,13 +932,29 @@ int XZellZeissCamera::SetROI(unsigned x, unsigned y, unsigned xSize, unsigned yS
 int XZellZeissCamera::GetROI(unsigned& x, unsigned& y, unsigned& xSize, unsigned& ySize)
 {
     LogMessage("ZEISS API METHOD ENTRY: GetROI");
+    int ret = DEVICE_OK;
+    RECT rcSize;
+    long result = McammGetCurrentFrameSize(0, &rcSize);
+    if (result != MCAM_NO_ERROR) {
+        std::ostringstream oss;
+        oss << "DEV: ERROR - McammGetCurrentFrameSize failed, ret=" << result << "\n";
+        LogMessage(oss.str().c_str());
+        ret = DEVICE_ERR;
+    }
+    {
+        std::ostringstream oss;
+        oss << "DEV: GetROI - top:" << rcSize.top << ", bottom:" << rcSize.bottom << ", left:" << rcSize.left << ", right:" << rcSize.right << "\n";
+        LogMessage(oss.str().c_str());
+    }
+
+
    x = roiX_;
    y = roiY_;
 
    xSize = img_.Width();
    ySize = img_.Height();
 
-   return DEVICE_OK;
+   return ret;
 }
 
 /**
@@ -917,6 +963,9 @@ int XZellZeissCamera::GetROI(unsigned& x, unsigned& y, unsigned& xSize, unsigned
 */
 int XZellZeissCamera::ClearROI()
 {
+	LogMessage("ZEISS API METHOD ENTRY: ClearROI");
+    long ret = DEVICE_OK;
+    RECT rcSize;
    ResizeImageBuffer();
    roiX_ = 0;
    roiY_ = 0;
@@ -924,7 +973,28 @@ int XZellZeissCamera::ClearROI()
    multiROIYs_.clear();
    multiROIWidths_.clear();
    multiROIHeights_.clear();
-   return DEVICE_OK;
+
+   long result = McammSetFrameSize(0, nullptr);
+   if (result != MCAM_NO_ERROR) {
+       std::ostringstream oss;
+       oss << "DEV: ERROR - McammSetFrameSize failed, ret=" << result << "\n";
+       LogMessage(oss.str().c_str());
+       ret = DEVICE_ERR;
+   }
+   result = McammGetCurrentFrameSize(0, &rcSize);
+   if (result != MCAM_NO_ERROR) {
+       std::ostringstream oss;
+       oss << "DEV: ERROR - McammGetCurrentFrameSize failed, ret=" << result << "\n";
+       LogMessage(oss.str().c_str());
+       ret = DEVICE_ERR;
+   }
+   {
+       std::ostringstream oss;
+       oss << "DEV: ClearROI - top:" << rcSize.top << ", bottom:" << rcSize.bottom << ", left:" << rcSize.left << ", right:" << rcSize.right << "\n";
+       LogMessage(oss.str().c_str());
+   }
+
+   return ret;
 }
 
 /**
@@ -2064,6 +2134,7 @@ int XZellZeissCamera::OnCrash(MM::PropertyBase* pProp, MM::ActionType eAct)
 */
 int XZellZeissCamera::ResizeImageBuffer()
 {
+	LogMessage("ZEISS INNER METHOD ENTRY: ResizeImageBuffer");
    char buf[MM::MaxStrLength];
    //int ret = GetProperty(MM::g_Keyword_Binning, buf);
    //if (ret != DEVICE_OK)
@@ -2085,7 +2156,11 @@ int XZellZeissCamera::ResizeImageBuffer()
    {
       byteDepth = 2;
    }
-
+   {
+       std::ostringstream oss;
+       oss << "DEV:ResizeImageBuffer - cameraCCDXSize: " << cameraCCDXSize_ << ", cameraCCDYSize: " << cameraCCDYSize_ << "\n";
+       LogMessage(oss.str().c_str());
+   }
    img_.Resize(cameraCCDXSize_/binSize_, cameraCCDYSize_/binSize_, byteDepth);
    return DEVICE_OK;
 }
