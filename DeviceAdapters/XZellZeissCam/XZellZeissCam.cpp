@@ -795,10 +795,17 @@ int XZellZeissCamera::SnapImage()
 const unsigned char* XZellZeissCamera::GetImageBuffer()
 {
     LogMessage("ZEISS API METHOD ENTRY: GetImageBuffer");
-   MMThreadGuard g(imgPixelsLock_);
+   //MMThreadGuard g(imgPixelsLock_);
+   LogMessage("DEV: GetImageBuffer - Guard set");
    MM::MMTime readoutTime(readoutUs_);
-   while (readoutTime > (GetCurrentMMTime() - readoutStartTime_)) {}		
+   while (readoutTime > (GetCurrentMMTime() - readoutStartTime_))
+   {
+       std::ostringstream oss;
+       oss << "DEV: SetROI - readoutTime:" << readoutTime.toString() << "VS (GetCurrentMMTime() - readoutStartTime_):" << (GetCurrentMMTime() - readoutStartTime_).toString() << "\n";
+       LogMessage(oss.str().c_str());
+   }		
    unsigned char *pB = (unsigned char*)(img_.GetPixels());
+   LogMessage("DEV: GetImageBuffer - GetPixels successful");
    return pB;
 }
 
@@ -1230,9 +1237,15 @@ int XZellZeissCamera::StopSequenceAcquisition()
 {
     LogMessage("ZEISS API METHOD ENTRY: StopSequenceAcquisition");
 
-
     // START OF ZEISS SPECIFIC DEV CODE
-    error = McammStopContinuousAcquisition(0);
+    try
+    {
+		error = McammStopContinuousAcquisition(0);
+    }
+    catch (...)
+    {
+        LogMessage("DEV: StopSequenceAcquisition - ERROR attempting McammStopContinuousAcquisition", false);
+    }
     // END OF ZEISS SPECIFIC DEV CODE   
 
    if (!thd_->IsStopped()) {
