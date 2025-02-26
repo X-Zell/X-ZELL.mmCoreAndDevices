@@ -184,6 +184,7 @@ public:
    int RegisterImgManipulatorCallBack(ImgManipulator* imgManpl);
    int MoveImageToCircularBuffer();
    int CaptureImage();
+   //BOOL SnapImageProgress(long done, long total, eMcamStatus Status, void* UserParam);
    long GetCCDXSize() { return cameraCCDXSize_; }
    long GetCCDYSize() { return cameraCCDYSize_; }
 
@@ -264,15 +265,15 @@ class ZeissAcquisitionThread : public MMDeviceThreadBase
       void Stop();
       void Start(long numImages, double intervalMs);
       bool IsStopped();
-      void Suspend();
-      bool IsSuspended();
-      void Resume();
+      //void Suspend();
+      //bool IsSuspended();
+      //void Resume();
       double GetIntervalMs(){return intervalMs_;}                               
       void SetLength(long images) {numImages_ = images;}                        
       long GetLength() const {return numImages_;}
       long GetImageCounter(){return imageCounter_;}                             
-      MM::MMTime GetStartTime(){return startTime_;}                             
-      MM::MMTime GetActualDuration(){return actualDuration_;}
+      //MM::MMTime GetStartTime(){return startTime_;}                             
+      //MM::MMTime GetActualDuration(){return actualDuration_;}
    private:                                                                     
       int svc(void) throw();
       double intervalMs_;                                                       

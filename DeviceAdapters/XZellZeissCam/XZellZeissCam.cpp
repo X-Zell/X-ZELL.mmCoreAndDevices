@@ -1552,20 +1552,20 @@ bool ZeissAcquisitionThread::IsStopped(){
    return stop_;
 }
 
-void ZeissAcquisitionThread::Suspend() {
-   MMThreadGuard g(this->suspendLock_);
-   suspend_ = true;
-}
-
-bool ZeissAcquisitionThread::IsSuspended() {
-   MMThreadGuard g(this->suspendLock_);
-   return suspend_;
-}
-
-void ZeissAcquisitionThread::Resume() {
-   MMThreadGuard g(this->suspendLock_);
-   suspend_ = false;
-}
+//void ZeissAcquisitionThread::Suspend() {
+//   MMThreadGuard g(this->suspendLock_);
+//   suspend_ = true;
+//}
+//
+//bool ZeissAcquisitionThread::IsSuspended() {
+//   MMThreadGuard g(this->suspendLock_);
+//   return suspend_;
+//}
+//
+//void ZeissAcquisitionThread::Resume() {
+//   MMThreadGuard g(this->suspendLock_);
+//   suspend_ = false;
+//}
 
 int ZeissAcquisitionThread::svc(void) throw()
 {
